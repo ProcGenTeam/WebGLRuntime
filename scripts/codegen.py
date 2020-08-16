@@ -14,6 +14,8 @@ flags.DEFINE_string("outputname", None,
                     "The Output Filename to write the resulting header file to.")
 
 """
+Much of the generated code is based on code internal to quickjs with minor changes.
+
 Generated IDL files are header files that provide basic declarations and wrappers.
 
 The normal function signature for quickjs is...
@@ -122,7 +124,12 @@ def get_cpp_to_js_for_type(type_name, variable_name):
 
 def emit_function(decl):
     name = decl["name"]
-    return_type = decl["returnType"]
+    return_type = decl.get("returnType", None)
+    constructor = decl.get("constructor", None)
+    prototype = decl.get("prototype", None)
+
+    if return_type == None and constructor == None:
+        raise Exception("No return type specified")
 
     function_name = f"js_{name}_wrap"
 
@@ -143,6 +150,17 @@ def emit_function(decl):
     user_arguments = []
 
     cleanup_fragments = ""
+
+    if prototype != None:
+        prototype_cpp_type = get_cpp_type(prototype)
+
+        class_id = decl["class_id"]
+
+        wrapper_argument_conversion += f"{prototype_cpp_type} _this = ({prototype_cpp_type}) JS_GetOpaque(this_val, {class_id});\n"
+
+        argument_names += ["_this"]
+
+        user_arguments += [f"{prototype_cpp_type} _this"]
 
     argument_number = 0
 
@@ -172,7 +190,8 @@ def emit_function(decl):
 
         argument_number += 1
 
-    cpp_return_type = get_cpp_type(return_type)
+    cpp_return_type = constructor if constructor != None else get_cpp_type(
+        return_type)
 
     arguments_joined = ", ".join(argument_names)
 
@@ -185,7 +204,30 @@ def emit_function(decl):
     if cpp_return_type == "void":
         full_user_call = f"{user_call};"
 
-    wrapper_return_conversion = get_cpp_to_js_for_type(return_type, "user_ret")
+    wrapper_return_conversion = ""
+
+    if constructor == None:
+        wrapper_return_conversion = get_cpp_to_js_for_type(
+            return_type, "user_ret")
+
+        wrapper_return_conversion = f"JSValue value = {wrapper_return_conversion};"
+    else:
+        class_id = decl["class_id"]
+
+        wrapper_return_conversion = f"""
+JSValue proto;
+if (JS_IsUndefined(this_val)) {{
+    proto = JS_GetClassProto(ctx, {class_id});
+}} else {{
+    proto = JS_GetPropertyStr(ctx, this_val, "prototype");
+    if (JS_IsException(proto)) {{
+        return JS_EXCEPTION;
+    }}
+}}
+JSValue value = JS_NewObjectProtoClass(ctx, proto, {class_id});
+JS_FreeValue(ctx, proto);
+JS_SetOpaque(value, user_ret);
+        """
 
     wrapper_function = f"""{wrapper_function_signature} {{
         {wrapper_prechecks}
@@ -194,7 +236,7 @@ def emit_function(decl):
 
         {full_user_call}
 
-        JSValue value = {wrapper_return_conversion};
+        {wrapper_return_conversion}
 
         {cleanup_fragments}
 
@@ -205,12 +247,163 @@ def emit_function(decl):
 
     function_list_entry = f"JS_CFUNC_DEF(\"{name}\", {argument_count}, {function_name} )"
 
-    return (wrapper_function, user_signature, function_list_entry)
+    return (wrapper_function, user_signature, function_list_entry, None)
+
+
+def emit_class(decl):
+    name = decl["name"]
+    cpp_name = decl["cppName"]
+    cpp_name_ptr = cpp_name + "*"
+
+    class_id_name = f"js_{name}_class_id"
+
+    class_id = f"static JSClassID {class_id_name};"
+
+    declarations = ""
+
+    signatures = ""
+
+    # Add Constructor
+    constructor_decl = {
+        "type": "function",
+        "name": f"{name}_ctor",
+        "constructor": cpp_name_ptr,
+        "class_id": class_id_name,
+        "arguments": decl["constructorArguments"]}
+
+    ctor_wrapper_function, ctor_user_signature, _, _ = emit_function(
+        constructor_decl)
+
+    ctor_wrapper_name = f"js_{name}_ctor_wrap"
+
+    ctor_argument_count = len(decl["constructorArguments"])
+
+    # Add finalizer
+    finalizer_wrapper_name = f"js_{name}_finalizer_wrap"
+
+    finalizer_name = f"js_{name}_finalizer"
+
+    finalizer_signature = f"void {finalizer_name}({cpp_name_ptr} val);"
+
+    finalizer_wrapper = f"""static void {finalizer_wrapper_name}(JSRuntime *rt, JSValue val)
+{{
+    {cpp_name} *value = ({cpp_name_ptr}) JS_GetOpaque(val, {class_id_name});
+    if (value) {{
+        {finalizer_name}(value);
+    }}
+}}"""
+
+    prototype_name = f"$$PROTO_{name}"
+
+    declare_type(prototype_name, f"{cpp_name_ptr}", TODO, TODO)
+
+    # Add prototype methods
+    prototype_signatures = ""
+
+    prototype_declarations = ""
+
+    prototype_function_list_entries = []
+
+    for prototype_decl in decl["prototype"]:
+        if prototype_decl["type"] == "function":
+            prototype_decl_name = prototype_decl["name"]
+
+            prototype_decl["name"] = f"{name}_{prototype_decl_name}"
+            prototype_decl["prototype"] = prototype_name
+            prototype_decl["class_id"] = class_id_name
+
+            prototype_argument_count = len(prototype_decl["arguments"])
+            prototype_function_name = f"js_{name}_{prototype_decl_name}_wrap"
+
+            pt_wrapper_function, pt_user_signature, pt_function_list_entry, _ = emit_function(
+                prototype_decl)
+
+            prototype_signatures += pt_user_signature + "\n"
+            prototype_declarations += pt_wrapper_function + "\n"
+            prototype_function_list_entries += [
+                f"JS_CFUNC_DEF(\"{prototype_decl_name}\", {prototype_argument_count}, {prototype_function_name} )"]
+        else:
+            raise Exception(
+                "Declaration type " + prototype_decl["type"] + " not supported for prototypes.")
+
+    # Add Class Declaration
+
+    class_decl_name = f"js_{name}_class"
+
+    class_decl = f"""static JSClassDef js_{name}_class = {{
+    "{name}",
+    .finalizer = {finalizer_wrapper_name},
+}};"""
+
+    # Add Prototype funcion list
+
+    prototype_function_list_entries_joined = ",\n".join(
+        prototype_function_list_entries)
+
+    prototype_function_list_name = f"js_{name}_prototype_funcs"
+
+    prototype_function_list = f"""static const JSCFunctionListEntry {prototype_function_list_name}[] = {{
+        {prototype_function_list_entries_joined}
+    }};"""
+
+    # Add Initialization function
+
+    initialization_function_name = f"js_{name}_init"
+
+    initialization_function = f"""void {initialization_function_name}(JSContext* ctx, JSValue global) {{
+        JS_NewClassID(&{class_id_name});
+        JS_NewClass(JS_GetRuntime(ctx), {class_id_name}, &{class_decl_name});
+
+        JSValue proto = JS_NewObject(ctx);
+        JS_SetPropertyFunctionList(ctx, proto, {prototype_function_list_name}, countof({prototype_function_list_name}));
+        
+        JSValue obj = JS_NewCFunction2(ctx, {ctor_wrapper_name}, "{name}", {ctor_argument_count},
+                               JS_CFUNC_constructor, 0);
+        JS_SetConstructor(ctx, obj, proto);
+        
+        JS_SetClassProto(ctx, {class_id_name}, proto);
+
+        JS_SetPropertyStr(ctx, global, "{name}", obj);
+    }}"""
+
+    declarations += f"""
+{class_id}
+
+{finalizer_wrapper}
+
+{class_decl}
+
+{ctor_wrapper_function}
+
+{prototype_declarations}
+
+{prototype_function_list}
+
+{initialization_function}
+"""
+
+    signatures += f"""
+struct {cpp_name};
+
+{ctor_user_signature}
+
+{prototype_signatures}
+
+{finalizer_signature}
+"""
+
+    initialization_call = f"{initialization_function_name}(ctx, global);"
+
+    declare_type(name, f"{cpp_name}*", TODO, TODO)
+
+    return (declarations, signatures, None, initialization_call)
 
 
 def emit_declaration(decl):
     if decl["type"] == "function":
         return emit_function(decl)
+    elif decl["type"] == "class":
+        return emit_class(decl)
     else:
         raise Exception("Declartion type " +
                         decl["type"] + " not Implemented.")
@@ -228,17 +421,23 @@ def do_codegen(filename, output_filename):
 
     user_signatures = ""
 
+    initialization_calls = ""
+
     function_list_entries = []
 
     for decl in idl_file["declarations"]:
-        wrapper_function, user_signature, function_list_entry = emit_declaration(
+        wrapper_function, user_signature, function_list_entry, initialization_call = emit_declaration(
             decl)
 
         decls += wrapper_function + "\n"
 
         user_signatures += user_signature + "\n"
 
-        function_list_entries += [function_list_entry]
+        if function_list_entry != None:
+            function_list_entries += [function_list_entry]
+
+        if initialization_call != None:
+            initialization_calls += initialization_call + "\n"
 
     impl_define = f"JSCODEGEN_{codegen_name}_IMPLEMENTATION"
 
@@ -258,6 +457,8 @@ void codegen_{codegen_name}_init(JSContext* ctx) {{
 
     JS_SetPropertyFunctionList(ctx, global, {function_list_name},
                                countof({function_list_name}));
+
+    {initialization_calls}
     
     JS_FreeValue(ctx, global);
 }}

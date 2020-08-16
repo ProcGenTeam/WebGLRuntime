@@ -21,6 +21,22 @@
       "name": "puts",
       "returnType": "void",
       "arguments": [{ "name": "str", "argumentType": "const char*" }]
+    },
+    {
+      "type": "class",
+      "name": "TestClass",
+      "cppName": "TestClass",
+      "constructorArguments": [
+        { "name": "name", "argumentType": "const char*" }
+      ],
+      "prototype": [
+        {
+          "type": "function",
+          "name": "hello",
+          "returnType": "void",
+          "arguments": []
+        }
+      ]
     }
   ]
 }
