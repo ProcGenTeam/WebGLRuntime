@@ -293,11 +293,25 @@ def emit_class(decl):
     }}
 }}"""
 
+    # Add new function
+    new_function_name = f"js_{name}_new"
+
+    new_function_wrapper = f"""JSValue {new_function_name}(JSContext* ctx, {cpp_name_ptr} user_value) {{
+    JSValue proto = JS_GetClassProto(ctx, {class_id_name});
+    JSValue value = JS_NewObjectProtoClass(ctx, proto, {class_id_name});
+    JS_FreeValue(ctx, proto);
+    JS_SetOpaque(value, user_value);
+
+    return value;
+}}"""
+
+    new_function_signature = f"JSValue {new_function_name}(JSContext* ctx, {cpp_name_ptr} user_value);"
+
+    # Add prototype methods
     prototype_name = f"$$PROTO_{name}"
 
     declare_type(prototype_name, f"{cpp_name_ptr}", TODO, TODO)
 
-    # Add prototype methods
     prototype_signatures = ""
 
     prototype_declarations = ""
@@ -375,6 +389,8 @@ def emit_class(decl):
 
 {ctor_wrapper_function}
 
+{new_function_wrapper}
+
 {prototype_declarations}
 
 {prototype_function_list}
@@ -386,6 +402,8 @@ def emit_class(decl):
 struct {cpp_name};
 
 {ctor_user_signature}
+
+{new_function_signature}
 
 {prototype_signatures}
 

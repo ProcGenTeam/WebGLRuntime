@@ -37,6 +37,35 @@
           "arguments": []
         }
       ]
+    },
+    {
+      "type": "class",
+      "name": "Renderer",
+      "cppName": "SDL_Renderer",
+      "constructorArguments": [],
+      "prototype": [
+        {
+          "type": "function",
+          "name": "setDrawColor",
+          "returnType": "void",
+          "arguments": [
+            { "name": "r", "argumentType": "int32" },
+            { "name": "g", "argumentType": "int32" },
+            { "name": "b", "argumentType": "int32" }
+          ]
+        },
+        {
+          "type": "function",
+          "name": "fillRect",
+          "returnType": "void",
+          "arguments": [
+            { "name": "x", "argumentType": "int32" },
+            { "name": "y", "argumentType": "int32" },
+            { "name": "w", "argumentType": "int32" },
+            { "name": "h", "argumentType": "int32" }
+          ]
+        }
+      ]
     }
   ]
 }
