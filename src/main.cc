@@ -8,6 +8,8 @@
 
 int js_add(int a, int b) { return a + b; }
 
+void js_puts(const char* str) { puts(str); }
+
 int main(int argc, char* argv[]) {
   JSRuntime* runtime = JS_NewRuntime();
   JSContext* context = JS_NewContext(runtime);
@@ -20,7 +22,7 @@ int main(int argc, char* argv[]) {
 
   JSValue val;
 
-  const char* test_code = "console.log(add(2, 2));";
+  const char* test_code = "puts(add(2, 2));";
 
   val = JS_Eval(context, test_code, sizeof(test_code) / sizeof(char),
                 "input.js", 0);

@@ -15,6 +15,12 @@
           "argumentType": "int32"
         }
       ]
+    },
+    {
+      "type": "function",
+      "name": "puts",
+      "returnType": "void",
+      "arguments": [{ "name": "str", "argumentType": "const char*" }]
     }
   ]
 }

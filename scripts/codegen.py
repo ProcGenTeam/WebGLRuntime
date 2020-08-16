@@ -29,15 +29,19 @@ def read_idl_file(filename):
 TYPES = {}
 
 
-def declare_type(type_name, cpp_type, js_to_cpp, cpp_to_js):
+def declare_type(type_name, cpp_type, js_to_cpp=None, js_to_cpp_cleanup=None, cpp_to_js=None):
     global TYPES
 
-    TYPES[type_name] = {"type_name": type_name, "cpp_type": cpp_type,
-                        "js_to_cpp": js_to_cpp, "cpp_to_js": cpp_to_js}
+    TYPES[type_name] = {"type_name": type_name,
+                        "cpp_type": cpp_type,
+                        "js_to_cpp": js_to_cpp,
+                        "js_to_cpp_cleanup": js_to_cpp_cleanup,
+                        "cpp_to_js": cpp_to_js}
 
 
 TODO = "TODO()"
 
+# Number Handling
 declare_type("int32",
              cpp_type="int32_t",
              js_to_cpp="""int32_t {0} = 0;
@@ -45,6 +49,19 @@ if (JS_ToInt32(ctx, &{0}, {1}) != 0) {{
     {2}
 }}""",
              cpp_to_js="JS_NewInt32(ctx, {0})")
+
+# String Handling
+declare_type("const char*",
+             cpp_type="const char*",
+             js_to_cpp="""const char* {0} = JS_ToCString(ctx, {1});
+if ({0} == NULL) {{
+    {2}
+}}
+""",
+             js_to_cpp_cleanup="""JS_FreeCString(ctx, {0});""",
+             cpp_to_js=TODO)
+
+declare_type("void", cpp_type="void", cpp_to_js="JS_UNDEFINED")
 
 
 def get_cpp_type(type_name):
@@ -64,8 +81,27 @@ def get_js_to_cpp_for_type(type_name, variable_name, argument_number):
     error_callback = "return JS_EXCEPTION;"
 
     if TYPES[type_name] != None:
-        return TYPES[type_name]["js_to_cpp"].format(
-            variable_name, argument_value, error_callback)
+        format_string = TYPES[type_name]["js_to_cpp"]
+
+        if format_string != None:
+            return format_string.format(
+                variable_name, argument_value, error_callback)
+        else:
+            return None
+    else:
+        raise Exception("Unknown type: " + type_name)
+
+
+def get_js_to_cpp_cleanup_for_type(type_name, variable_name):
+    global TYPES
+
+    if TYPES[type_name] != None:
+        format_string = TYPES[type_name]["js_to_cpp_cleanup"]
+
+        if format_string != None:
+            return format_string.format(variable_name)
+        else:
+            return None
     else:
         raise Exception("Unknown type: " + type_name)
 
@@ -74,7 +110,12 @@ def get_cpp_to_js_for_type(type_name, variable_name):
     global TYPES
 
     if TYPES[type_name] != None:
-        return TYPES[type_name]["cpp_to_js"].format(variable_name)
+        format_string = TYPES[type_name]["cpp_to_js"]
+
+        if format_string != None:
+            return format_string.format(variable_name)
+        else:
+            return None
     else:
         raise Exception("Unknown type: " + type_name)
 
@@ -101,6 +142,8 @@ def emit_function(decl):
 
     user_arguments = []
 
+    cleanup_fragments = ""
+
     argument_number = 0
 
     for arg in decl["arguments"]:
@@ -112,11 +155,20 @@ def emit_function(decl):
         argument_conversion = get_js_to_cpp_for_type(
             argument_type, argument_name, argument_number)
 
+        if argument_conversion == None:
+            raise Exception("Could not convert " + argument_type)
+
         wrapper_argument_conversion += f"{argument_conversion}\n"
 
         argument_names += [argument_name]
 
         user_arguments += [f"{argument_cpp_type} {argument_name}"]
+
+        argument_cleanup = get_js_to_cpp_cleanup_for_type(
+            argument_type, argument_name)
+
+        if argument_cleanup != None:
+            cleanup_fragments += argument_cleanup + "\n"
 
         argument_number += 1
 
@@ -128,6 +180,11 @@ def emit_function(decl):
 
     user_call = f"{user_function_name}({arguments_joined})"
 
+    full_user_call = f"{cpp_return_type} user_ret = {user_call};"
+
+    if cpp_return_type == "void":
+        full_user_call = f"{user_call};"
+
     wrapper_return_conversion = get_cpp_to_js_for_type(return_type, "user_ret")
 
     wrapper_function = f"""{wrapper_function_signature} {{
@@ -135,9 +192,11 @@ def emit_function(decl):
 
         {wrapper_argument_conversion}
 
-        {cpp_return_type} user_ret = {user_call};
+        {full_user_call}
 
         JSValue value = {wrapper_return_conversion};
+
+        {cleanup_fragments}
 
         return value;
     }}"""
