@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "declarations": [
+    {
+      "type": "function",
+      "name": "add",
+      "returnType": "int32",
+      "arguments": [
+        {
+          "name": "a",
+          "argumentType": "int32"
+        },
+        {
+          "name": "b",
+          "argumentType": "int32"
+        }
+      ]
+    }
+  ]
+}
