@@ -63,6 +63,22 @@ if ({0} == NULL) {{
              js_to_cpp_cleanup="""JS_FreeCString(ctx, {0});""",
              cpp_to_js=TODO)
 
+# Complex Types
+declare_type("Callback",
+             cpp_type="Callback*",
+             js_to_cpp="""if (!JS_IsFunction(ctx, {1})) {{
+    {2}
+}}
+Callback* {0} = new Callback(ctx, {1});
+""",
+             js_to_cpp_cleanup="""delete {0};""",
+             cpp_to_js=TODO)
+
+declare_type("JSValue",
+             cpp_type="JSValue",
+             js_to_cpp="""JSValue {0} = {1};""",
+             cpp_to_js="""{0}""")
+
 declare_type("void", cpp_type="void", cpp_to_js="JS_UNDEFINED")
 
 
@@ -75,10 +91,8 @@ def get_cpp_type(type_name):
         raise Exception("Unknown type: " + type_name)
 
 
-def get_js_to_cpp_for_type(type_name, variable_name, argument_number):
+def get_js_to_cpp_for_type(type_name, variable_name, argument_value):
     global TYPES
-
-    argument_value = f"argv[{argument_number}]"
 
     error_callback = "return JS_EXCEPTION;"
 
@@ -170,8 +184,10 @@ def emit_function(decl):
 
         argument_cpp_type = get_cpp_type(argument_type)
 
+        argument_value = f"argv[{argument_number}]"
+
         argument_conversion = get_js_to_cpp_for_type(
-            argument_type, argument_name, argument_number)
+            argument_type, argument_name, argument_value)
 
         if argument_conversion == None:
             raise Exception("Could not convert " + argument_type)
@@ -417,11 +433,66 @@ struct {cpp_name};
     return (declarations, signatures, None, initialization_call)
 
 
+def emit_property(decl):
+    name = decl["name"]
+    property_type = decl["propertyType"]
+
+    cpp_type = get_cpp_type(property_type)
+
+    get_wrapper_name = f"js_{name}_get_wrap"
+    set_wrapper_name = f"js_{name}_set_wrap"
+
+    get_user_function_name = f"js_{name}_get"
+    set_user_function_name = f"js_{name}_set"
+
+    cpp_to_js_fragment = get_cpp_to_js_for_type(property_type, "user_value")
+
+    get_wrapper_function = f"""static JSValue {get_wrapper_name}(JSContext *ctx, JSValueConst this_val) {{
+    {cpp_type} user_value = {get_user_function_name}();
+
+    JSValue value = {cpp_to_js_fragment};
+
+    return value;
+}}"""
+
+    js_to_cpp_fragment = get_js_to_cpp_for_type(
+        property_type, "user_value", "value")
+
+    set_wrapper_function = f"""static JSValue {set_wrapper_name}(JSContext *ctx, JSValueConst this_val, JSValueConst value) {{
+    {js_to_cpp_fragment}
+
+    {set_user_function_name}(user_value);
+
+    return JS_UNDEFINED;
+}}"""
+
+    get_user_signature = f"{cpp_type} {get_user_function_name}();"
+    set_user_signature = f"void {set_user_function_name}({cpp_type} value);"
+
+    declartions = f"""
+{get_wrapper_function}
+
+{set_wrapper_function}
+"""
+
+    signatures = f"""
+{get_user_signature}
+
+{set_user_signature}
+"""
+
+    function_list_entry = f"""JS_CGETSET_DEF("{name}", {get_wrapper_name}, {set_wrapper_name} )"""
+
+    return (declartions, signatures, function_list_entry, None)
+
+
 def emit_declaration(decl):
     if decl["type"] == "function":
         return emit_function(decl)
     elif decl["type"] == "class":
         return emit_class(decl)
+    elif decl["type"] == "property":
+        return emit_property(decl)
     else:
         raise Exception("Declartion type " +
                         decl["type"] + " not Implemented.")

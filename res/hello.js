@@ -8,3 +8,8 @@ function draw(ctx) {
 
   frame++;
 }
+
+console.log(
+  "call",
+  callMe(() => testProp)
+);

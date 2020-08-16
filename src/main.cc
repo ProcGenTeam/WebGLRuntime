@@ -5,6 +5,8 @@
 
 #include <iostream>
 
+#include "codegen_utils.h"
+
 #define JSCODEGEN_test_IMPLEMENTATION
 #include "test.h"
 
@@ -13,6 +15,12 @@
 int js_add(int a, int b) { return a + b; }
 
 void js_puts(const char* str) { puts(str); }
+
+JSValue js_callMe(Callback* callback) { return (*callback)({}); }
+
+int32_t js_testProp_get() { return 42; }
+
+void js_testProp_set(int32_t value) {}
 
 struct TestClass {
   char* name;
@@ -69,6 +77,27 @@ void call_draw_function(JSContext* context, JSValue render_wrapper) {
   JS_FreeValue(context, global);
 }
 
+void call_init_function(JSContext* context, JSValue render_wrapper) {
+  JSValue global = JS_GetGlobalObject(context);
+
+  JSValue draw_func = JS_GetPropertyStr(context, global, "init");
+
+  JSValue value_array[] = {render_wrapper};
+
+  if (!JS_IsUndefined(draw_func)) {
+    JSValue ret = JS_Call(context, draw_func, global, 1, value_array);
+
+    if (JS_IsException(ret)) {
+      js_std_dump_error(context);
+    }
+
+    JS_FreeValue(context, ret);
+  }
+
+  JS_FreeValue(context, draw_func);
+  JS_FreeValue(context, global);
+}
+
 // Entry Point
 
 int main(int argc, char* argv[]) {
@@ -86,6 +115,32 @@ int main(int argc, char* argv[]) {
 
   codegen_test_init(context);
 
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
+
+    return 1;
+  }
+
+  SDL_Window* window;
+  SDL_Renderer* renderer;
+
+  if ((window = SDL_CreateWindow("WebGL Runtime", SDL_WINDOWPOS_UNDEFINED,
+                                 SDL_WINDOWPOS_UNDEFINED, 800, 600, 0)) ==
+      NULL) {
+    fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
+
+    return 1;
+  }
+
+  if ((renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC)) ==
+      NULL) {
+    fprintf(stderr, "Failed to create renderer: %s\n", SDL_GetError());
+
+    return 1;
+  }
+
+  JSValue render_wrapper = js_Renderer_new(context, renderer);
+
   JSValue val;
 
   size_t test_code_length = 0;
@@ -99,23 +154,7 @@ int main(int argc, char* argv[]) {
 
   JS_FreeValue(context, val);
 
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
-
-    return 1;
-  }
-
-  SDL_Window* window;
-  SDL_Renderer* renderer;
-  if (SDL_CreateWindowAndRenderer(800, 600, 0, &window, &renderer) != 0) {
-    fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
-
-    return 1;
-  }
-
-  SDL_SetWindowTitle(window, "WebGL Runtime");
-
-  JSValue render_wrapper = js_Renderer_new(context, renderer);
+  call_init_function(context, render_wrapper);
 
   while (1) {
     SDL_Event e;

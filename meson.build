@@ -39,4 +39,9 @@ dl_dep = meson.get_compiler('c').find_library('dl', required : false)
 thread_dep = dependency('threads')
 sdl2_dep = dependency('sdl2')
 
-executable('webglruntime', ['src/main.cc', test_codegen], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep])
+executable('webglruntime', [
+  'src/main.cc',
+  'src/codegen_utils.cc',
+  'src/codegen_utils.h',
+  test_codegen
+], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep])

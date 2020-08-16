@@ -23,6 +23,13 @@
       "arguments": [{ "name": "str", "argumentType": "const char*" }]
     },
     {
+      "type": "function",
+      "name": "callMe",
+      "returnType": "JSValue",
+      "arguments": [{ "name": "cb", "argumentType": "Callback" }]
+    },
+    { "type": "property", "name": "testProp", "propertyType": "int32" },
+    {
       "type": "class",
       "name": "TestClass",
       "cppName": "TestClass",
