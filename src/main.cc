@@ -41,12 +41,7 @@ void js_Renderer_setDrawColor(SDL_Renderer* _this, int r, int g, int b) {
 }
 
 void js_Renderer_fillRect(SDL_Renderer* _this, int x, int y, int w, int h) {
-  SDL_Rect rect;
-
-  rect.x = x;
-  rect.y = y;
-  rect.w = w;
-  rect.h = h;
+  SDL_Rect rect = {x, y, w, h};
 
   SDL_RenderFillRect(_this, &rect);
 }
@@ -58,9 +53,10 @@ void call_draw_function(JSContext* context, JSValue render_wrapper) {
 
   JSValue draw_func = JS_GetPropertyStr(context, global, "draw");
 
+  JSValue value_array[] = {render_wrapper};
+
   if (!JS_IsUndefined(draw_func)) {
-    JSValue ret =
-        JS_Call(context, draw_func, global, 1, new JSValue{render_wrapper});
+    JSValue ret = JS_Call(context, draw_func, global, 1, value_array);
 
     if (JS_IsException(ret)) {
       js_std_dump_error(context);

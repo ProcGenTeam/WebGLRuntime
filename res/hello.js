@@ -1,13 +1,10 @@
+let frame = 0;
+
 function draw(ctx) {
-  ctx.setDrawColor(255, 0, 0);
-  ctx.fillRect(10, 10, 100, 100);
+  for (let i = 0; i < 255; i++) {
+    ctx.setDrawColor(i + 100, i, i);
+    ctx.fillRect(Math.sin(frame / i) * 200 + 200, i * 4, 100, 3);
+  }
 
-  ctx.setDrawColor(0, 255, 0);
-  ctx.fillRect(120, 10, 100, 100);
-
-  ctx.setDrawColor(0, 0, 255);
-  ctx.fillRect(10, 120, 100, 100);
-
-  ctx.setDrawColor(255, 255, 255);
-  ctx.fillRect(120, 120, 100, 100);
+  frame++;
 }
