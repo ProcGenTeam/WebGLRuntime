@@ -1,3 +1,4 @@
+#include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <quickjs-libc.h>
 #include <quickjs.h>
@@ -37,22 +38,6 @@ TestClass* js_TestClass_ctor(const char* name) { return new TestClass(name); }
 void js_TestClass_finalizer(TestClass* val) { delete val; }
 
 void js_TestClass_hello(TestClass* _this) { _this->hello(); }
-
-// Renderer Functions
-
-SDL_Renderer* js_Renderer_ctor() { return nullptr; }
-
-void js_Renderer_finalizer(SDL_Renderer* val) {}
-
-void js_Renderer_setDrawColor(SDL_Renderer* _this, int r, int g, int b) {
-  SDL_SetRenderDrawColor(_this, r, g, b, SDL_ALPHA_OPAQUE);
-}
-
-void js_Renderer_fillRect(SDL_Renderer* _this, int x, int y, int w, int h) {
-  SDL_Rect rect = {x, y, w, h};
-
-  SDL_RenderFillRect(_this, &rect);
-}
 
 // Other Functions
 
@@ -122,24 +107,40 @@ int main(int argc, char* argv[]) {
   }
 
   SDL_Window* window;
-  SDL_Renderer* renderer;
+  SDL_GLContext glContext;
 
   if ((window = SDL_CreateWindow("WebGL Runtime", SDL_WINDOWPOS_UNDEFINED,
-                                 SDL_WINDOWPOS_UNDEFINED, 800, 600, 0)) ==
-      NULL) {
+                                 SDL_WINDOWPOS_UNDEFINED, 800, 600,
+                                 SDL_WINDOW_OPENGL)) == nullptr) {
     fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
 
     return 1;
   }
 
-  if ((renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC)) ==
-      NULL) {
-    fprintf(stderr, "Failed to create renderer: %s\n", SDL_GetError());
+  // Based on:
+  // https://lazyfoo.net/tutorials/SDL/51_SDL_and_modern_opengl/index.php
+  glContext = SDL_GL_CreateContext(window);
+  if (glContext == nullptr) {
+    fprintf(stderr, "Failed to create OpenGL context: %s\n", SDL_GetError());
 
     return 1;
   }
 
-  JSValue render_wrapper = js_Renderer_new(context, renderer);
+  glewExperimental = GL_TRUE;
+  GLenum glewError = glewInit();
+  if (glewError != GLEW_OK) {
+    fprintf(stderr, "Error initializing GLEW! %s\n",
+            glewGetErrorString(glewError));
+
+    return 1;
+  }
+
+  if (SDL_GL_SetSwapInterval(1) < 0) {
+    fprintf(stderr, "Warning: Unable to set VSync! SDL Error: %s\n",
+            SDL_GetError());
+
+    return 1;
+  }
 
   JSValue val;
 
@@ -154,7 +155,7 @@ int main(int argc, char* argv[]) {
 
   JS_FreeValue(context, val);
 
-  call_init_function(context, render_wrapper);
+  // call_init_function(context, render_wrapper);
 
   while (1) {
     SDL_Event e;
@@ -164,18 +165,9 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    SDL_SetRenderDrawColor(renderer, 10, 10, 10, SDL_ALPHA_OPAQUE);
-
-    SDL_RenderClear(renderer);
-
-    call_draw_function(context, render_wrapper);
-
-    SDL_RenderPresent(renderer);
+    // call_draw_function(context, render_wrapper);
   }
 
-  JS_FreeValue(context, render_wrapper);
-
-  SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
 
   SDL_Quit();

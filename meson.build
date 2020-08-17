@@ -1,6 +1,7 @@
 project('webglruntime', 'cpp', 'c')
 
 prog_codegen = find_program('scripts/codegen.py')
+prog_codegen_idl = find_program('scripts/codegen_idl.py')
 
 prog_python = import('python').find_installation('python3')
 
@@ -33,15 +34,28 @@ codegen = generator(prog_codegen,
   ]
 )
 
+codegen_idl = generator(prog_codegen_idl,
+  output: '@BASENAME@.h',
+  arguments: [
+    '--filename=@INPUT@',
+    '--outputname=@BUILD_DIR@/@BASENAME@.h'
+  ]
+)
+
 test_codegen = codegen.process('idl/test.json')
+
+webgl_codegen = codegen_idl.process('idl/webgl.idl')
 
 dl_dep = meson.get_compiler('c').find_library('dl', required : false)
 thread_dep = dependency('threads')
 sdl2_dep = dependency('sdl2')
+glew_dep = dependency('glew')
 
 executable('webglruntime', [
   'src/main.cc',
   'src/codegen_utils.cc',
   'src/codegen_utils.h',
-  test_codegen
-], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep])
+  test_codegen,
+  'src/js_webgl.cc',
+  webgl_codegen
+], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glew_dep])
