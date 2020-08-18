@@ -29,3 +29,10 @@ class Callback {
     return ret;
   }
 };
+
+struct ArrayBuffer {
+  uint8_t* arr;
+  size_t size;
+
+  ArrayBuffer(uint8_t* arr, size_t size) : arr(arr), size(size) {}
+};

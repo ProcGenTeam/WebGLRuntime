@@ -4,9 +4,9 @@ const vertices = [-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0];
 
 const indices = [0, 1, 2];
 
-const vertexBuffer = null;
-const indexBuffer = null;
-const shaderProgram = null;
+let vertexBuffer = null;
+let indexBuffer = null;
+let shaderProgram = null;
 
 /*
 # Functions
@@ -62,13 +62,21 @@ function init(gl) {
   vertexBuffer = gl.createBuffer();
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices));
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array(vertices).buffer,
+    gl.STATIC_DRAW
+  );
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   indexBuffer = gl.createBuffer();
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices));
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(indices).buffer,
+    gl.STATIC_DRAW
+  );
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
   const vertSource = `
@@ -84,7 +92,7 @@ void main(void) {
 
   const fragSource = `
 void main(void) {
-  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);
+  gl_FragColor = vec4(0.1, 0.1, 0.1, 0.1);
 }`;
 
   const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -106,7 +114,7 @@ function draw(gl) {
 
   gl.enable(gl.DEPTH_TEST);
 
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   gl.viewport(0, 0, 800, 600);
 

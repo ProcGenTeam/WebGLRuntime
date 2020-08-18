@@ -26,20 +26,13 @@ def declare_type(type_name, cpp_type, js_to_cpp=None, js_to_cpp_cleanup=None, cp
 
 
 def declare_numeric_type(type_name, cpp_type_name, js_to_cpp_name, cpp_to_js_name):
-    pc_0 = "{0}"
-    pc_1 = "{1}"
-    pc_2 = "{2}"
-
-    pc_open = "{{"
-    pc_close = "}}"
-
     declare_type(type_name,
                  cpp_type=cpp_type_name,
-                 js_to_cpp=f"""{cpp_type_name} {pc_0} = 0;
-if ({js_to_cpp_name}(ctx, &{pc_0}, {pc_1}) != 0) {pc_open}
-    {pc_2}
-{pc_close}""",
-                 cpp_to_js=f"{cpp_to_js_name}(ctx, {pc_0})",
+                 js_to_cpp=f"""{cpp_type_name} {{0}} = 0;
+if ({js_to_cpp_name}(ctx, &{{0}}, {{1}}) != 0) {{{{
+    {{2}}
+}}}}""",
+                 cpp_to_js=f"{cpp_to_js_name}(ctx, {{0}})",
                  is_numeric=True)
 
 
@@ -91,6 +84,17 @@ declare_type("JSValue",
              cpp_type="JSValue",
              js_to_cpp="""JSValue {0} = {1};""",
              cpp_to_js="""{0}""")
+
+declare_type("ArrayBuffer",
+             cpp_type="ArrayBuffer",
+             js_to_cpp="""size_t {0}_size = 0;
+uint8_t* {0}_arr = JS_GetArrayBuffer(ctx, &{0}_size, {1});
+if ({0}_arr == NULL) {{
+    {2}
+}}
+ArrayBuffer {0}({0}_arr, {0}_size);
+""",
+             cpp_to_js=TODO)
 
 declare_type("void", cpp_type="void", cpp_to_js="JS_UNDEFINED")
 
@@ -358,6 +362,10 @@ def emit_class(decl):
     fromValue_function_name = f"js_{name}_fromValue"
 
     fromValue_function_wrapper = f"""{cpp_name_ptr} {fromValue_function_name}(JSContext* ctx, JSValue value) {{
+    if (JS_IsUndefined(value) || JS_IsNull(value)) {{
+        return nullptr;
+    }}
+
     {cpp_name} *cpp_value = ({cpp_name_ptr}) JS_GetOpaque(value, {class_id_name});
 
     return cpp_value;
@@ -396,6 +404,7 @@ def emit_class(decl):
         elif prototype_decl["type"] == "constant":
             pt_wrapper_function, pt_user_signature, pt_function_list_entry, _ = emit_constant(
                 prototype_decl)
+            prototype_function_list_entries += [pt_function_list_entry]
         else:
             raise Exception(
                 "Declaration type " + prototype_decl["type"] + " not supported for prototypes.")

@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "codegen_utils.h"
+#include "js_webgl.h"
 
 #define JSCODEGEN_test_IMPLEMENTATION
 #include "test.h"
@@ -83,6 +84,16 @@ void call_init_function(JSContext* context, JSValue render_wrapper) {
   JS_FreeValue(context, global);
 }
 
+// From: https://www.khronos.org/opengl/wiki/OpenGL_Error
+void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
+                                GLenum severity, GLsizei length,
+                                const GLchar* message, const void* userParam) {
+  fprintf(stderr,
+          "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+          (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
+          message);
+}
+
 // Entry Point
 
 int main(int argc, char* argv[]) {
@@ -99,6 +110,7 @@ int main(int argc, char* argv[]) {
   js_init_module_std(context, "std");
 
   codegen_test_init(context);
+  codegen_webgl_init(context);
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
@@ -116,6 +128,12 @@ int main(int argc, char* argv[]) {
 
     return 1;
   }
+
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
+
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                      SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
   // Based on:
   // https://lazyfoo.net/tutorials/SDL/51_SDL_and_modern_opengl/index.php
@@ -142,6 +160,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  // Enable debug output
+  glEnable(GL_DEBUG_OUTPUT);
+  glDebugMessageCallback(MessageCallback, 0);
+
+  fprintf(stderr, "OpenGL Version: %s\n", glGetString(GL_VERSION));
+
   JSValue val;
 
   size_t test_code_length = 0;
@@ -150,12 +174,21 @@ int main(int argc, char* argv[]) {
   val = JS_Eval(context, (char*)test_code, test_code_length, argv[1], 0);
 
   if (JS_IsException(val)) {
+    fprintf(stderr, "Error: Error running inital script.\n");
+
     js_std_dump_error(context);
+
+    return 1;
   }
 
   JS_FreeValue(context, val);
 
-  // call_init_function(context, render_wrapper);
+  WebGLRenderingContext rendering_context;
+
+  JSValue webgl_context =
+      js_WebGLRenderingContext_new(context, &rendering_context);
+
+  call_init_function(context, webgl_context);
 
   while (1) {
     SDL_Event e;
@@ -165,12 +198,16 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    // call_draw_function(context, render_wrapper);
+    call_draw_function(context, webgl_context);
+
+    SDL_GL_SwapWindow(window);
   }
 
   SDL_DestroyWindow(window);
 
   SDL_Quit();
+
+  JS_FreeValue(context, webgl_context);
 
   JS_FreeContext(context);
   JS_FreeRuntime(runtime);
