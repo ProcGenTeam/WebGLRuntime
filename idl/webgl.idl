@@ -52,6 +52,9 @@ interface WebGLProgram : WebGLObject {
 interface WebGLShader : WebGLObject {
 };
 
+// interface WebGLTexture : WebGLObject {
+// };
+
 interface WebGLRenderingContext
 {
 
@@ -640,5 +643,11 @@ interface WebGLRenderingContext
 
     void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 
-    void bufferData(GLenum target, BufferSource? data, GLenum usage);
+    // From Overloads
+
+    // void bufferData(GLenum target, BufferSource? data, GLenum usage);
+
+    // void texImage2D(GLenum target, GLint level, GLint internalformat,
+    //             GLsizei width, GLsizei height, GLint border, GLenum format,
+    //             GLenum type, [AllowShared] ArrayBufferView? pixels);
 };
