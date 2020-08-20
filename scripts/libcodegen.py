@@ -279,7 +279,7 @@ def emit_function(decl):
         wrapper_return_conversion = get_cpp_to_js_for_type(
             return_type, "user_ret")
 
-        wrapper_return_conversion = f"JSValue value = {wrapper_return_conversion};"
+        wrapper_return_conversion = f"JSValue _r_value = {wrapper_return_conversion};"
     else:
         class_id = decl["class_id"]
 
@@ -293,9 +293,9 @@ if (JS_IsUndefined(this_val)) {{
         return JS_EXCEPTION;
     }}
 }}
-JSValue value = JS_NewObjectProtoClass(ctx, proto, {class_id});
+JSValue _r_value = JS_NewObjectProtoClass(ctx, proto, {class_id});
 JS_FreeValue(ctx, proto);
-JS_SetOpaque(value, user_ret);
+JS_SetOpaque(_r_value, user_ret);
         """
 
     wrapper_function = f"""{wrapper_function_signature} {{
@@ -309,7 +309,7 @@ JS_SetOpaque(value, user_ret);
 
         {cleanup_fragments}
 
-        return value;
+        return _r_value;
     }}"""
 
     user_signature = f"{cpp_return_type} {user_function_name}({user_arguments_joined});"

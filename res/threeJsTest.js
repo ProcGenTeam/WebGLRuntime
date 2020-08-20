@@ -48174,17 +48174,12 @@ function init(gl) {
     1000
   );
 
-  console.log("0");
-
   renderer = new THREE.WebGLRenderer({
     canvas: fakeCanvas,
   });
 
-  console.log("1");
-
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  console.log("2");
   // document.body.appendChild(renderer.domElement);
 
   var geometry = new THREE.BoxGeometry();
@@ -48193,11 +48188,11 @@ function init(gl) {
   scene.add(cube);
 
   camera.position.z = 5;
-
-  renderer.render(scene, camera);
 }
 
 function draw() {
-  // cube.rotation.x += 0.01;
-  // cube.rotation.y += 0.01;
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+
+  renderer.render(scene, camera);
 }

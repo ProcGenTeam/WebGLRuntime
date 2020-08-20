@@ -58,6 +58,9 @@ interface WebGLTexture : WebGLObject {
 interface WebGLVertexArrayObject : WebGLObject {
 };
 
+interface WebGLUniformLocation {
+};
+
 interface WebGL2RenderingContext
 {
 
@@ -556,8 +559,8 @@ interface WebGL2RenderingContext
 
     // void generateMipmap(GLenum target);
 
-    // WebGLActiveInfo? getActiveAttrib(WebGLProgram program, GLuint index);
-    // WebGLActiveInfo? getActiveUniform(WebGLProgram program, GLuint index);
+    any getActiveAttrib(WebGLProgram program, GLuint index);
+    any getActiveUniform(WebGLProgram program, GLuint index);
     // sequence<WebGLShader>? getAttachedShaders(WebGLProgram program);
 
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram program, DOMString name);
@@ -582,7 +585,7 @@ interface WebGL2RenderingContext
 
     // any getUniform(WebGLProgram program, WebGLUniformLocation location);
 
-    // WebGLUniformLocation? getUniformLocation(WebGLProgram program, DOMString name);
+    WebGLUniformLocation? getUniformLocation(WebGLProgram program, DOMString name);
 
     // any getVertexAttrib(GLuint index, GLenum pname);
 
@@ -618,15 +621,15 @@ interface WebGL2RenderingContext
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
 
-    // void uniform1f(WebGLUniformLocation? location, GLfloat x);
-    // void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
-    // void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
-    // void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+    void uniform1f(WebGLUniformLocation? location, GLfloat x);
+    void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
+    void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
+    void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 
-    // void uniform1i(WebGLUniformLocation? location, GLint x);
-    // void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
-    // void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
-    // void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
+    void uniform1i(WebGLUniformLocation? location, GLint x);
+    void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
+    void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
+    void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
 
     void useProgram(WebGLProgram? program);
     // void validateProgram(WebGLProgram program);
@@ -653,6 +656,11 @@ interface WebGL2RenderingContext
     void texImage2D(GLenum target, GLint level, GLint internalformat,
                 GLsizei width, GLsizei height, GLint border, GLenum format,
                 GLenum type, [AllowShared] ArrayBufferView? pixels);
+
+    void uniform3fv(WebGLUniformLocation? location, Float32Array v);
+
+    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, 
+            Float32Array value);
 
     // WebGL2 Functions
 

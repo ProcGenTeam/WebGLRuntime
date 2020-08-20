@@ -68,6 +68,15 @@ WebGLVertexArrayObject* js_WebGLVertexArrayObject_ctor() { return nullptr; }
 
 void js_WebGLVertexArrayObject_finalizer(WebGLVertexArrayObject* val) {}
 
+struct WebGLUniformLocation {
+  GLuint uniform;
+  WebGLUniformLocation(GLuint uniform) : uniform(uniform) {}
+};
+
+WebGLUniformLocation* js_WebGLUniformLocation_ctor() { return nullptr; }
+
+void js_WebGLUniformLocation_finalizer(WebGLUniformLocation* val) {}
+
 struct WebGL2RenderingContext {};
 
 WebGL2RenderingContext* js_WebGL2RenderingContext_ctor() {
@@ -221,6 +230,50 @@ void js_WebGL2RenderingContext_frontFace(WebGL2RenderingContext* _this,
   glFrontFace(mode);
 }
 
+JSValue js_WebGL2RenderingContext_getActiveAttrib(JSContext* ctx,
+                                                  WebGL2RenderingContext* _this,
+                                                  WebGLProgram* program,
+                                                  uint32_t index) {
+  char attribName[128];
+
+  GLsizei length = 0;
+  GLint size = 0;
+  GLenum type = 0;
+
+  glGetActiveAttrib(program->program, index, sizeof(attribName), &length, &size,
+                    &type, attribName);
+
+  JSValue obj = JS_NewObject(ctx);
+
+  JS_SetPropertyStr(ctx, obj, "name", JS_NewStringLen(ctx, attribName, length));
+  JS_SetPropertyStr(ctx, obj, "type", JS_NewInt32(ctx, type));
+  JS_SetPropertyStr(ctx, obj, "size", JS_NewInt32(ctx, size));
+
+  return obj;
+}
+
+JSValue js_WebGL2RenderingContext_getActiveUniform(
+    JSContext* ctx, WebGL2RenderingContext* _this, WebGLProgram* program,
+    uint32_t index) {
+  char uniformName[128];
+
+  GLsizei length = 0;
+  GLint size = 0;
+  GLenum type = 0;
+
+  glGetActiveUniform(program->program, index, sizeof(uniformName), &length,
+                     &size, &type, uniformName);
+
+  JSValue obj = JS_NewObject(ctx);
+
+  JS_SetPropertyStr(ctx, obj, "name",
+                    JS_NewStringLen(ctx, uniformName, length));
+  JS_SetPropertyStr(ctx, obj, "type", JS_NewInt32(ctx, type));
+  JS_SetPropertyStr(ctx, obj, "size", JS_NewInt32(ctx, size));
+
+  return obj;
+}
+
 int32_t js_WebGL2RenderingContext_getAttribLocation(
     WebGL2RenderingContext* _this, WebGLProgram* program, const char* name) {
   return glGetAttribLocation(program->program, name);
@@ -296,6 +349,13 @@ const char* js_WebGL2RenderingContext_getShaderSource(
   return infoLog;
 }
 
+WebGLUniformLocation* js_WebGL2RenderingContext_getUniformLocation(
+    WebGL2RenderingContext* _this, WebGLProgram* program, const char* name) {
+  GLint location = glGetUniformLocation(program->program, name);
+
+  return new WebGLUniformLocation(location);
+}
+
 int64_t js_WebGL2RenderingContext_getVertexAttribOffset(
     WebGL2RenderingContext* _this, uint32_t index, uint32_t pname) {
   return 0;
@@ -323,6 +383,56 @@ void js_WebGL2RenderingContext_texParameteri(WebGL2RenderingContext* _this,
                                              uint32_t target, uint32_t pname,
                                              int32_t param) {
   glTexParameteri(target, pname, param);
+}
+
+void js_WebGL2RenderingContext_uniform1f(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         double x) {
+  glUniform1f(location->uniform, x);
+}
+
+void js_WebGL2RenderingContext_uniform2f(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         double x, double y) {
+  glUniform2f(location->uniform, x, y);
+}
+
+void js_WebGL2RenderingContext_uniform3f(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         double x, double y, double z) {
+  glUniform3f(location->uniform, x, y, z);
+}
+
+void js_WebGL2RenderingContext_uniform4f(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         double x, double y, double z,
+                                         double w) {
+  glUniform4f(location->uniform, x, y, z, w);
+}
+
+void js_WebGL2RenderingContext_uniform1i(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         int32_t x) {
+  glUniform1i(location->uniform, x);
+}
+
+void js_WebGL2RenderingContext_uniform2i(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         int32_t x, int32_t y) {
+  glUniform2i(location->uniform, x, y);
+}
+
+void js_WebGL2RenderingContext_uniform3i(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         int32_t x, int32_t y, int32_t z) {
+  glUniform3i(location->uniform, x, y, z);
+}
+
+void js_WebGL2RenderingContext_uniform4i(WebGL2RenderingContext* _this,
+                                         WebGLUniformLocation* location,
+                                         int32_t x, int32_t y, int32_t z,
+                                         int32_t w) {
+  glUniform4i(location->uniform, x, y, z, w);
 }
 
 void js_WebGL2RenderingContext_linkProgram(WebGL2RenderingContext* _this,
@@ -370,6 +480,23 @@ void js_WebGL2RenderingContext_texImage2D(WebGL2RenderingContext* _this,
 
   glTexImage2D(target, level, internalformat, width, height, border, format,
                type, pixels_buf.arr);
+}
+
+void js_WebGL2RenderingContext_uniform3fv(WebGL2RenderingContext* _this,
+                                          WebGLUniformLocation* location,
+                                          ArrayBufferView v) {
+  ArrayBuffer value_buf = v.getBuffer();
+
+  glUniform3fv(location->uniform, 1, (float*)value_buf.arr);
+}
+
+void js_WebGL2RenderingContext_uniformMatrix4fv(WebGL2RenderingContext* _this,
+                                                WebGLUniformLocation* location,
+                                                bool transpose,
+                                                ArrayBufferView value) {
+  ArrayBuffer value_buf = value.getBuffer();
+
+  glUniformMatrix4fv(location->uniform, 1, transpose, (float*)value_buf.arr);
 }
 
 WebGLVertexArrayObject* js_WebGL2RenderingContext_createVertexArray(

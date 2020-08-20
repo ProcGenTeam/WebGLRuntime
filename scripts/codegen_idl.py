@@ -44,6 +44,7 @@ add_type_alias("any", "JSValue")
 add_type_alias("DOMString", "const char*")
 add_type_alias("(ArrayBufferView or ArrayBuffer)", "ArrayBuffer")
 add_type_alias("ArrayBufferView", "ArrayBufferView")
+add_type_alias("Float32Array", "ArrayBufferView")
 
 
 def read_file(filename):
