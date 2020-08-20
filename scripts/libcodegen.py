@@ -96,6 +96,19 @@ ArrayBuffer {0}({0}_arr, {0}_size);
 """,
              cpp_to_js=TODO)
 
+declare_type("ArrayBufferView",
+             cpp_type="ArrayBufferView",
+             js_to_cpp="""size_t {0}_offset = 0;
+size_t {0}_length = 0;
+size_t {0}_bytes_per_element = 0;
+JSValue {0}_arr = JS_GetTypedArrayBuffer(ctx, {1}, &{0}_offset, &{0}_length, &{0}_bytes_per_element);
+if (JS_IsException({0}_arr)) {{
+    {2}
+}}
+ArrayBufferView {0}(ctx, {0}_arr, {0}_offset, {0}_length, {0}_bytes_per_element);
+""",
+             cpp_to_js=TODO)
+
 declare_type("void", cpp_type="void", cpp_to_js="JS_UNDEFINED")
 
 

@@ -48,6 +48,17 @@ void js_WebGLShader_finalizer(WebGLShader* val) {
   // glDeleteShader(val->shader);
 }
 
+struct WebGLTexture {
+  GLuint texture;
+  WebGLTexture(GLuint texture) : texture(texture) {}
+};
+
+WebGLTexture* js_WebGLTexture_ctor() { return nullptr; }
+
+void js_WebGLTexture_finalizer(WebGLTexture* val) {
+  // glDeleteShader(val->shader);
+}
+
 struct WebGLRenderingContext {};
 
 WebGLRenderingContext* js_WebGLRenderingContext_ctor() {
@@ -76,6 +87,16 @@ void js_WebGLRenderingContext_bindBuffer(WebGLRenderingContext* _this,
   }
 }
 
+void js_WebGLRenderingContext_bindTexture(WebGLRenderingContext* _this,
+                                          uint32_t target,
+                                          WebGLTexture* texture) {
+  if (texture == nullptr) {
+    glBindTexture(target, NULL);
+  } else {
+    glBindTexture(target, texture->texture);
+  }
+}
+
 void js_WebGLRenderingContext_clear(WebGLRenderingContext* _this,
                                     uint32_t mask) {
   glClear(mask);
@@ -85,6 +106,16 @@ void js_WebGLRenderingContext_clearColor(WebGLRenderingContext* _this,
                                          double red, double green, double blue,
                                          double alpha) {
   glClearColor(red, green, blue, alpha);
+}
+
+void js_WebGLRenderingContext_clearDepth(WebGLRenderingContext* _this,
+                                         double depth) {
+  glClearDepth(depth);
+}
+
+void js_WebGLRenderingContext_clearStencil(WebGLRenderingContext* _this,
+                                           int32_t s) {
+  glClearStencil(s);
 }
 
 void js_WebGLRenderingContext_compileShader(WebGLRenderingContext* _this,
@@ -114,6 +145,24 @@ WebGLShader* js_WebGLRenderingContext_createShader(WebGLRenderingContext* _this,
   return new WebGLShader(shader);
 }
 
+WebGLTexture* js_WebGLRenderingContext_createTexture(
+    WebGLRenderingContext* _this) {
+  GLuint tex = 0;
+  glGenTextures(1, &tex);
+
+  return new WebGLTexture(tex);
+}
+
+void js_WebGLRenderingContext_cullFace(WebGLRenderingContext* _this,
+                                       uint32_t mode) {
+  glCullFace(mode);
+}
+
+void js_WebGLRenderingContext_depthFunc(WebGLRenderingContext* _this,
+                                        uint32_t func) {
+  glDepthFunc(func);
+}
+
 void js_WebGLRenderingContext_disable(WebGLRenderingContext* _this,
                                       uint32_t cap) {
   glDisable(cap);
@@ -133,6 +182,11 @@ void js_WebGLRenderingContext_enable(WebGLRenderingContext* _this,
 void js_WebGLRenderingContext_enableVertexAttribArray(
     WebGLRenderingContext* _this, uint32_t index) {
   glEnableVertexAttribArray(index);
+}
+
+void js_WebGLRenderingContext_frontFace(WebGLRenderingContext* _this,
+                                        uint32_t mode) {
+  glFrontFace(mode);
 }
 
 int32_t js_WebGLRenderingContext_getAttribLocation(WebGLRenderingContext* _this,
@@ -156,6 +210,18 @@ void js_WebGLRenderingContext_shaderSource(WebGLRenderingContext* _this,
   };
   GLsizei sizes[] = {sourceLength};
   glShaderSource(shader->shader, 1, sourceList, sizes);
+}
+
+void js_WebGLRenderingContext_texParameterf(WebGLRenderingContext* _this,
+                                            uint32_t target, uint32_t pname,
+                                            double param) {
+  glTextureParameterf(target, pname, param);
+}
+
+void js_WebGLRenderingContext_texParameteri(WebGLRenderingContext* _this,
+                                            uint32_t target, uint32_t pname,
+                                            int32_t param) {
+  glTexParameteri(target, pname, param);
 }
 
 void js_WebGLRenderingContext_linkProgram(WebGLRenderingContext* _this,
@@ -189,6 +255,18 @@ void js_WebGLRenderingContext_bufferData(WebGLRenderingContext* _this,
   //   fprintf(stderr, "%d,", data.arr[i]);
   // }
   // fprintf(stderr, "\n");
+}
+
+void js_WebGLRenderingContext_texImage2D(WebGLRenderingContext* _this,
+                                         uint32_t target, int32_t level,
+                                         int32_t internalformat, int32_t width,
+                                         int32_t height, int32_t border,
+                                         uint32_t format, uint32_t type,
+                                         ArrayBufferView pixels) {
+  ArrayBuffer pixels_buf = pixels.getBuffer();
+
+  glTexImage2D(target, level, internalformat, width, height, border, format,
+               type, pixels_buf.arr);
 }
 
 void js_WebGLRenderingContext_finalizer(WebGLRenderingContext* val) {

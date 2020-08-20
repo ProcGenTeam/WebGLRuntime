@@ -36,3 +36,35 @@ struct ArrayBuffer {
 
   ArrayBuffer(uint8_t* arr, size_t size) : arr(arr), size(size) {}
 };
+
+class ArrayBufferView {
+ private:
+  JSContext* _ctx = nullptr;
+  JSValue value;
+
+ public:
+  size_t offset;
+  size_t length;
+  size_t bytes_per_element;
+
+  ArrayBufferView(JSContext* ctx, JSValue value, size_t offset, size_t length,
+                  size_t bytes_per_element)
+      : _ctx(ctx),
+        value(value),
+        offset(offset),
+        length(length),
+        bytes_per_element(bytes_per_element) {}
+
+  ~ArrayBufferView() {
+    // JS_FreeValue(this->_ctx, this->value);
+  }
+
+  ArrayBuffer getBuffer() {
+    size_t size = 0;
+    uint8_t* arr = JS_GetArrayBuffer(this->_ctx, &size, this->value);
+
+    ArrayBuffer ret(arr, size);
+
+    return ret;
+  }
+};

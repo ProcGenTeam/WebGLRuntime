@@ -52,8 +52,8 @@ interface WebGLProgram : WebGLObject {
 interface WebGLShader : WebGLObject {
 };
 
-// interface WebGLTexture : WebGLObject {
-// };
+interface WebGLTexture : WebGLObject {
+};
 
 interface WebGLRenderingContext
 {
@@ -493,7 +493,7 @@ interface WebGLRenderingContext
     void bindBuffer(GLenum target, WebGLBuffer? buffer);
     // void bindFramebuffer(GLenum target, WebGLFramebuffer? framebuffer);
     // void bindRenderbuffer(GLenum target, WebGLRenderbuffer? renderbuffer);
-    // void bindTexture(GLenum target, WebGLTexture? texture);
+    void bindTexture(GLenum target, WebGLTexture? texture);
     // void blendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
     // void blendEquation(GLenum mode);
     // void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);
@@ -504,8 +504,8 @@ interface WebGLRenderingContext
     // [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
     void clearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-    // void clearDepth(GLclampf depth);
-    // void clearStencil(GLint s);
+    void clearDepth(GLclampf depth);
+    void clearStencil(GLint s);
     // void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader shader);
 
@@ -520,9 +520,9 @@ interface WebGLRenderingContext
     WebGLProgram? createProgram();
     // WebGLRenderbuffer? createRenderbuffer();
     WebGLShader? createShader(GLenum type);
-    // WebGLTexture? createTexture();
+    WebGLTexture? createTexture();
 
-    // void cullFace(GLenum mode);
+    void cullFace(GLenum mode);
 
     // void deleteBuffer(WebGLBuffer? buffer);
     // void deleteFramebuffer(WebGLFramebuffer? framebuffer);
@@ -531,7 +531,7 @@ interface WebGLRenderingContext
     // void deleteShader(WebGLShader? shader);
     // void deleteTexture(WebGLTexture? texture);
 
-    // void depthFunc(GLenum func);
+    void depthFunc(GLenum func);
     // void depthMask(GLboolean flag);
     // void depthRange(GLclampf zNear, GLclampf zFar);
     // void detachShader(WebGLProgram program, WebGLShader shader);
@@ -549,7 +549,7 @@ interface WebGLRenderingContext
     //                              WebGLRenderbuffer? renderbuffer);
     // void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
     //                           WebGLTexture? texture, GLint level);
-    // void frontFace(GLenum mode);
+    void frontFace(GLenum mode);
 
     // void generateMipmap(GLenum target);
 
@@ -612,8 +612,8 @@ interface WebGLRenderingContext
     // void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     // void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    // void texParameterf(GLenum target, GLenum pname, GLfloat param);
-    // void texParameteri(GLenum target, GLenum pname, GLint param);
+    void texParameterf(GLenum target, GLenum pname, GLfloat param);
+    void texParameteri(GLenum target, GLenum pname, GLint param);
 
     // void uniform1f(WebGLUniformLocation? location, GLfloat x);
     // void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
@@ -645,9 +645,9 @@ interface WebGLRenderingContext
 
     // From Overloads
 
-    // void bufferData(GLenum target, BufferSource? data, GLenum usage);
+    void bufferData(GLenum target, BufferSource? data, GLenum usage);
 
-    // void texImage2D(GLenum target, GLint level, GLint internalformat,
-    //             GLsizei width, GLsizei height, GLint border, GLenum format,
-    //             GLenum type, [AllowShared] ArrayBufferView? pixels);
+    void texImage2D(GLenum target, GLint level, GLint internalformat,
+                GLsizei width, GLsizei height, GLint border, GLenum format,
+                GLenum type, [AllowShared] ArrayBufferView? pixels);
 };

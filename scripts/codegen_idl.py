@@ -42,6 +42,7 @@ add_type_alias("unrestricted float", "double")
 
 add_type_alias("DOMString", "const char*")
 add_type_alias("(ArrayBufferView or ArrayBuffer)", "ArrayBuffer")
+add_type_alias("ArrayBufferView", "ArrayBufferView")
 
 
 def read_file(filename):
