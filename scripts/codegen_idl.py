@@ -40,6 +40,7 @@ add_type_alias("unsigned short", "uint16")
 add_type_alias("unsigned long", "uint32")
 add_type_alias("unrestricted float", "double")
 
+add_type_alias("any", "JSValue")
 add_type_alias("DOMString", "const char*")
 add_type_alias("(ArrayBufferView or ArrayBuffer)", "ArrayBuffer")
 add_type_alias("ArrayBufferView", "ArrayBufferView")
@@ -80,6 +81,11 @@ def get_member_idl(thing):
         id_returnType = resolve_type(return_pretty_name)
         id_arguments = []
 
+        id_passContext = False
+
+        if id_returnType == "JSValue":
+            id_passContext = True
+
         for arg in arguments:
             arg_name = arg.identifier.name
             arg_optional = arg.optional
@@ -91,6 +97,9 @@ def get_member_idl(thing):
 
             arg_type = resolve_type(arg_pretty_name)
 
+            if arg_type == "JSValue":
+                id_passContext = True
+
             id_arguments += [{
                 "name": arg_name,
                 "argumentType": arg_type,
@@ -101,7 +110,8 @@ def get_member_idl(thing):
             "type": "function",
             "name": id_name,
             "returnType": id_returnType,
-            "arguments": id_arguments
+            "arguments": id_arguments,
+            "passContext": id_passContext
         }
     else:
         print(thing)

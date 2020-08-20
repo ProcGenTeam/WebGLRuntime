@@ -2,9 +2,9 @@
 
 #include <quickjs.h>
 
-struct WebGLRenderingContext {};
+struct WebGL2RenderingContext {};
 
-JSValue js_WebGLRenderingContext_new(JSContext* ctx,
-                                     WebGLRenderingContext* user_value);
+JSValue js_WebGL2RenderingContext_new(JSContext* ctx,
+                                      WebGL2RenderingContext* user_value);
 
 void codegen_webgl_init(JSContext* ctx);

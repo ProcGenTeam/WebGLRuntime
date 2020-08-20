@@ -41,7 +41,7 @@ TODO = "TODO()"
 # Number Handling
 declare_numeric_type("int32", "int32_t", "JS_ToInt32", "JS_NewInt32")
 declare_numeric_type("int64", "int64_t", "JS_ToInt64", "JS_NewInt64")
-declare_numeric_type("uint32", "uint32_t", "JS_ToUint32", "JS_NewUInt32")
+declare_numeric_type("uint32", "uint32_t", "JS_ToUint32", "JS_NewUint32")
 declare_numeric_type("double", "double", "JS_ToFloat64", "JS_NewFloat64")
 
 declare_type("boolean",
@@ -56,7 +56,7 @@ if ({0}_r == -1) {{
     {0} = true;
 }}
 """,
-             cpp_to_js="""JS_NewBool(ctx, {0}""")
+             cpp_to_js="""JS_NewBool(ctx, {0})""")
 
 # String Handling
 declare_type("const char*",
@@ -67,7 +67,7 @@ if ({0} == NULL) {{
 }}
 """,
              js_to_cpp_cleanup="""JS_FreeCString(ctx, {0});""",
-             cpp_to_js=TODO)
+             cpp_to_js="""JS_NewString(ctx, {0})""")
 
 # Complex Types
 declare_type("Callback",
@@ -189,6 +189,7 @@ def emit_function(decl):
     return_type = decl.get("returnType", None)
     constructor = decl.get("constructor", None)
     prototype = decl.get("prototype", None)
+    pass_context = decl.get("passContext", False)
 
     if return_type == None and constructor == None:
         raise Exception("No return type specified")
@@ -212,6 +213,10 @@ def emit_function(decl):
     user_arguments = []
 
     cleanup_fragments = ""
+
+    if pass_context:
+        argument_names += ["ctx"]
+        user_arguments += [f"JSContext* ctx"]
 
     if prototype != None:
         prototype_cpp_type = get_cpp_type(prototype)

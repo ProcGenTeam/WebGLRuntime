@@ -183,10 +183,10 @@ int main(int argc, char* argv[]) {
 
   JS_FreeValue(context, val);
 
-  WebGLRenderingContext rendering_context;
+  WebGL2RenderingContext rendering_context;
 
   JSValue webgl_context =
-      js_WebGLRenderingContext_new(context, &rendering_context);
+      js_WebGL2RenderingContext_new(context, &rendering_context);
 
   call_init_function(context, webgl_context);
 
