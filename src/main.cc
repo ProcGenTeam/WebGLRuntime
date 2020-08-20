@@ -1,10 +1,15 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <imgui.h>
 #include <quickjs-libc.h>
 #include <quickjs.h>
 #include <string.h>
 
 #include <iostream>
+
+#define IMGUI_IMPL_OPENGL_LOADER_GLEW
+#include <examples/imgui_impl_opengl3.h>
+#include <examples/imgui_impl_sdl.h>
 
 #include "codegen_utils.h"
 #include "js_webgl.h"
@@ -166,6 +171,19 @@ int main(int argc, char* argv[]) {
 
   fprintf(stderr, "OpenGL Version: %s\n", glGetString(GL_VERSION));
 
+  // Init IMGUI
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  (void)io;
+
+  ImGui::StyleColorsDark();
+
+  // Setup Platform/Renderer bindings
+  ImGui_ImplSDL2_InitForOpenGL(window, glContext);
+  ImGui_ImplOpenGL3_Init();
+
   JSValue val;
 
   size_t test_code_length = 0;
@@ -190,6 +208,8 @@ int main(int argc, char* argv[]) {
 
   call_init_function(context, webgl_context);
 
+  bool show_demo_window = true;
+
   while (1) {
     SDL_Event e;
     if (SDL_PollEvent(&e)) {
@@ -198,13 +218,26 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+
+    if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+
+    ImGui::Render();
+
     call_draw_function(context, webgl_context);
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(window);
   }
 
-  SDL_DestroyWindow(window);
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplSDL2_Shutdown();
+  ImGui::DestroyContext();
 
+  SDL_DestroyWindow(window);
   SDL_Quit();
 
   JS_FreeValue(context, webgl_context);

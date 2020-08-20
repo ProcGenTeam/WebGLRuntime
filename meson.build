@@ -25,6 +25,24 @@ qjs_lib = static_library('quickjs', qjs_srcs, c_args: [
 qjs_dep = declare_dependency(link_with: qjs_lib,
   include_directories: qjs_inc)
 
+imgui_dir = 'third_party/imgui'
+
+imgui_inc = include_directories(imgui_dir + '/')
+
+imgui_srcs = [
+  imgui_dir + '/imgui.cpp',
+  imgui_dir + '/imgui_demo.cpp',
+  imgui_dir + '/imgui_draw.cpp',
+  imgui_dir + '/imgui_widgets.cpp',
+  imgui_dir + '/examples/imgui_impl_opengl3.cpp',
+  imgui_dir + '/examples/imgui_impl_sdl.cpp'
+]
+
+imgui_lib = static_library('imgui', imgui_srcs, include_directories: imgui_inc)
+
+imgui_dep = declare_dependency(link_with: imgui_lib,
+  include_directories: imgui_inc)
+
 codegen = generator(prog_codegen,
   output: '@BASENAME@.h',
   arguments: [
@@ -58,4 +76,4 @@ executable('webglruntime', [
   test_codegen,
   'src/js_webgl.cc',
   webgl_codegen
-], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glew_dep])
+], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glew_dep, imgui_dep])
