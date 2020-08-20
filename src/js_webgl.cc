@@ -307,10 +307,9 @@ void js_WebGL2RenderingContext_shaderSource(WebGL2RenderingContext* _this,
   size_t sourceLength = strlen(source);
 
   const char* sourceList[] = {
-      "#version 420\n",
       source,
   };
-  GLsizei sizes[] = {strlen("#version 420\n"), sourceLength};
+  GLsizei sizes[] = {sourceLength};
   glShaderSource(shader->shader, 1, sourceList, sizes);
 }
 
