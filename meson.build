@@ -64,6 +64,8 @@ test_codegen = codegen.process('idl/test.json')
 
 webgl_codegen = codegen_idl.process('idl/webgl.idl')
 
+imgui_codegen = codegen_idl.process('idl/imguiBind.idl')
+
 dl_dep = meson.get_compiler('c').find_library('dl', required : false)
 thread_dep = dependency('threads')
 sdl2_dep = dependency('sdl2')
@@ -75,5 +77,7 @@ executable('webglruntime', [
   'src/codegen_utils.h',
   test_codegen,
   'src/js_webgl.cc',
-  webgl_codegen
+  webgl_codegen,
+  'src/js_imgui.cc',
+  imgui_codegen
 ], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glew_dep, imgui_dep])

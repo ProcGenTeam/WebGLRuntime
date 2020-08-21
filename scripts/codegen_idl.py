@@ -41,6 +41,7 @@ add_type_alias("unsigned long", "uint32")
 add_type_alias("unrestricted float", "double")
 
 add_type_alias("any", "JSValue")
+add_type_alias("Callback", "Callback")
 add_type_alias("DOMString", "const char*")
 add_type_alias("(ArrayBufferView or ArrayBuffer)", "ArrayBuffer")
 add_type_alias("ArrayBufferView", "ArrayBufferView")
@@ -156,6 +157,9 @@ def do_idl_codegen(input_filename, output_filename):
             name, inner_type = thing.identifier.name, thing.innerType
             add_type_alias(name, resolve_type(inner_type.prettyName()))
         elif thing.isInterface():
+            if thing.getClassName() == "Callback":
+                continue
+
             interface_decl = get_interface_idl(thing)
 
             decls += [interface_decl]

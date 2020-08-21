@@ -1,9 +1,9 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
-#include <imgui.h>
 #include <quickjs-libc.h>
 #include <quickjs.h>
 #include <string.h>
+#include <third_party/imgui/imgui.h>
 
 #include <iostream>
 
@@ -12,6 +12,7 @@
 #include <examples/imgui_impl_sdl.h>
 
 #include "codegen_utils.h"
+#include "js_imgui.h"
 #include "js_webgl.h"
 
 #define JSCODEGEN_test_IMPLEMENTATION
@@ -47,15 +48,15 @@ void js_TestClass_hello(TestClass* _this) { _this->hello(); }
 
 // Other Functions
 
-void call_draw_function(JSContext* context, JSValue render_wrapper) {
+void call_callback(JSContext* context, const char* name, JSValue argument) {
   JSValue global = JS_GetGlobalObject(context);
 
-  JSValue draw_func = JS_GetPropertyStr(context, global, "draw");
+  JSValue callback_func = JS_GetPropertyStr(context, global, name);
 
-  JSValue value_array[] = {render_wrapper};
+  JSValue value_array[] = {argument};
 
-  if (!JS_IsUndefined(draw_func)) {
-    JSValue ret = JS_Call(context, draw_func, global, 1, value_array);
+  if (!JS_IsUndefined(callback_func)) {
+    JSValue ret = JS_Call(context, callback_func, global, 1, value_array);
 
     if (JS_IsException(ret)) {
       js_std_dump_error(context);
@@ -64,35 +65,30 @@ void call_draw_function(JSContext* context, JSValue render_wrapper) {
     JS_FreeValue(context, ret);
   }
 
-  JS_FreeValue(context, draw_func);
+  JS_FreeValue(context, callback_func);
   JS_FreeValue(context, global);
 }
 
+void call_draw_function(JSContext* context, JSValue render_wrapper) {
+  call_callback(context, "draw", render_wrapper);
+}
+
 void call_init_function(JSContext* context, JSValue render_wrapper) {
-  JSValue global = JS_GetGlobalObject(context);
+  call_callback(context, "init", render_wrapper);
+}
 
-  JSValue draw_func = JS_GetPropertyStr(context, global, "init");
-
-  JSValue value_array[] = {render_wrapper};
-
-  if (!JS_IsUndefined(draw_func)) {
-    JSValue ret = JS_Call(context, draw_func, global, 1, value_array);
-
-    if (JS_IsException(ret)) {
-      js_std_dump_error(context);
-    }
-
-    JS_FreeValue(context, ret);
-  }
-
-  JS_FreeValue(context, draw_func);
-  JS_FreeValue(context, global);
+void call_gui_function(JSContext* context, JSValue imgui_wrapper) {
+  call_callback(context, "drawGui", imgui_wrapper);
 }
 
 // From: https://www.khronos.org/opengl/wiki/OpenGL_Error
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
                                 GLenum severity, GLsizei length,
                                 const GLchar* message, const void* userParam) {
+  if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+    return;
+  }
+
   fprintf(stderr,
           "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
           (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
@@ -116,6 +112,7 @@ int main(int argc, char* argv[]) {
 
   codegen_test_init(context);
   codegen_webgl_init(context);
+  codegen_imguiBind_init(context);
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
@@ -206,6 +203,10 @@ int main(int argc, char* argv[]) {
   JSValue webgl_context =
       js_WebGL2RenderingContext_new(context, &rendering_context);
 
+  ImGuiContext imgui_context;
+
+  JSValue imgui_wrapper = js_ImGuiContext_new(context, &imgui_context);
+
   call_init_function(context, webgl_context);
 
   bool show_demo_window = true;
@@ -223,6 +224,8 @@ int main(int argc, char* argv[]) {
     ImGui::NewFrame();
 
     if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+
+    call_gui_function(context, imgui_wrapper);
 
     ImGui::Render();
 

@@ -1,0 +1,6 @@
+interface Callback {};
+
+interface ImGuiContext {
+  void beginWindow(DOMString title, Callback callback);
+  boolean button(DOMString label);
+};
