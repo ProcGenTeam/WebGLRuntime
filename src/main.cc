@@ -211,12 +211,17 @@ int main(int argc, char* argv[]) {
 
   bool show_demo_window = true;
 
-  while (1) {
-    SDL_Event e;
-    if (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT) {
-        break;
-      }
+  bool done = false;
+
+  while (!done) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      ImGui_ImplSDL2_ProcessEvent(&event);
+      if (event.type == SDL_QUIT) done = true;
+      if (event.type == SDL_WINDOWEVENT &&
+          event.window.event == SDL_WINDOWEVENT_CLOSE &&
+          event.window.windowID == SDL_GetWindowID(window))
+        done = true;
     }
 
     ImGui_ImplOpenGL3_NewFrame();

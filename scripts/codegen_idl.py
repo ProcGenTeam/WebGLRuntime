@@ -39,6 +39,7 @@ add_type_alias("octet", "octet")
 add_type_alias("unsigned short", "uint16")
 add_type_alias("unsigned long", "uint32")
 add_type_alias("unrestricted float", "double")
+add_type_alias("float", "double")
 
 add_type_alias("any", "JSValue")
 add_type_alias("Callback", "Callback")

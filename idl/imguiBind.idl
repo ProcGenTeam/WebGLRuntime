@@ -3,4 +3,8 @@ interface Callback {};
 interface ImGuiContext {
   void beginWindow(DOMString title, Callback callback);
   boolean button(DOMString label);
+  void text(DOMString str);
+  DOMString inputText(DOMString label, DOMString last);
+  float inputNumber(DOMString label, float last);
+  float inputSlider(DOMString label, float min, float max, float last);
 };
