@@ -61,9 +61,8 @@ codegen_idl = generator(prog_codegen_idl,
 )
 
 test_codegen = codegen.process('idl/test.json')
-
+core_codegen = codegen_idl.process('idl/core.idl')
 webgl_codegen = codegen_idl.process('idl/webgl.idl')
-
 imgui_codegen = codegen_idl.process('idl/imguiBind.idl')
 
 dl_dep = meson.get_compiler('c').find_library('dl', required : false)
@@ -76,6 +75,7 @@ executable('webglruntime', [
   'src/codegen_utils.cc',
   'src/codegen_utils.h',
   test_codegen,
+  core_codegen,
   'src/js_webgl.cc',
   webgl_codegen,
   'src/js_imgui.cc',

@@ -1,0 +1,4 @@
+interface Core {
+  attribute long viewportWidth;
+  attribute long viewportHeight;
+};

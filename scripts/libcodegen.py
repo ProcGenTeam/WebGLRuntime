@@ -423,6 +423,20 @@ def emit_class(decl):
             pt_wrapper_function, pt_user_signature, pt_function_list_entry, _ = emit_constant(
                 prototype_decl)
             prototype_function_list_entries += [pt_function_list_entry]
+        elif prototype_decl["type"] == "property":
+            prototype_decl_name = prototype_decl["name"]
+
+            prototype_decl["name"] = f"{name}_{prototype_decl_name}"
+            prototype_decl["prototype"] = prototype_name
+            prototype_decl["class_id"] = class_id_name
+
+            pt_wrapper_function, pt_user_signature, pt_function_list_entry, _ = emit_property(
+                prototype_decl)
+
+            prototype_signatures += pt_user_signature + "\n"
+            prototype_declarations += pt_wrapper_function + "\n"
+            prototype_function_list_entries += [
+                f"""JS_CGETSET_DEF("{prototype_decl_name}", js_{name}_{prototype_decl_name}_get_wrap, js_{name}_{prototype_decl_name}_set_wrap)"""]
         else:
             raise Exception(
                 "Declaration type " + prototype_decl["type"] + " not supported for prototypes.")
@@ -512,8 +526,25 @@ struct {cpp_name};
 def emit_property(decl):
     name = decl["name"]
     property_type = decl["propertyType"]
+    prototype = decl.get("prototype", None)
 
     cpp_type = get_cpp_type(property_type)
+
+    user_arguments = []
+    argument_names = []
+
+    prefix_fragment = ""
+
+    if prototype != None:
+        prototype_cpp_type = get_cpp_type(prototype)
+
+        class_id = decl["class_id"]
+
+        prefix_fragment += f"{prototype_cpp_type} _this = ({prototype_cpp_type}) JS_GetOpaque(this_val, {class_id});\n"
+
+        argument_names += ["_this"]
+
+        user_arguments += [f"{prototype_cpp_type} _this"]
 
     get_wrapper_name = f"js_{name}_get_wrap"
     set_wrapper_name = f"js_{name}_set_wrap"
@@ -523,27 +554,39 @@ def emit_property(decl):
 
     cpp_to_js_fragment = get_cpp_to_js_for_type(property_type, "user_value")
 
+    get_argument_names_joined = ", ".join(argument_names)
+
     get_wrapper_function = f"""static JSValue {get_wrapper_name}(JSContext *ctx, JSValueConst this_val) {{
-    {cpp_type} user_value = {get_user_function_name}();
+    {prefix_fragment}
+
+    {cpp_type} user_value = {get_user_function_name}({get_argument_names_joined});
 
     JSValue value = {cpp_to_js_fragment};
 
     return value;
 }}"""
 
+    set_argument_names_joined = ", ".join(argument_names + ["user_value"])
+
     js_to_cpp_fragment = get_js_to_cpp_for_type(
         property_type, "user_value", "value")
 
     set_wrapper_function = f"""static JSValue {set_wrapper_name}(JSContext *ctx, JSValueConst this_val, JSValueConst value) {{
+    {prefix_fragment}
+
     {js_to_cpp_fragment}
 
-    {set_user_function_name}(user_value);
+    {set_user_function_name}({set_argument_names_joined});
 
     return JS_UNDEFINED;
 }}"""
 
-    get_user_signature = f"{cpp_type} {get_user_function_name}();"
-    set_user_signature = f"void {set_user_function_name}({cpp_type} value);"
+    get_user_arguments_joined = ", ".join(user_arguments)
+    set_user_arguments_joined = ", ".join(
+        user_arguments + [f"{cpp_type} value"])
+
+    get_user_signature = f"{cpp_type} {get_user_function_name}({get_user_arguments_joined});"
+    set_user_signature = f"void {set_user_function_name}({set_user_arguments_joined});"
 
     declartions = f"""
 {get_wrapper_function}

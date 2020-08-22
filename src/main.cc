@@ -18,6 +18,40 @@
 #define JSCODEGEN_test_IMPLEMENTATION
 #include "test.h"
 
+#define JSCODEGEN_core_IMPLEMENTATION
+#include "core.h"
+
+// Core Functions
+
+struct Core {
+  SDL_Window* window;
+  SDL_GLContext glContext;
+};
+
+Core* js_Core_ctor() { return nullptr; }
+
+int32_t js_Core_viewportWidth_get(Core* _this) {
+  int w = 0, h = 0;
+
+  SDL_GL_GetDrawableSize(_this->window, &w, &h);
+
+  return w;
+}
+
+void js_Core_viewportWidth_set(Core* _this, int32_t value) {}
+
+int32_t js_Core_viewportHeight_get(Core* _this) {
+  int w = 0, h = 0;
+
+  SDL_GL_GetDrawableSize(_this->window, &w, &h);
+
+  return h;
+}
+
+void js_Core_viewportHeight_set(Core* _this, int32_t value) {}
+
+void js_Core_finalizer(Core* val) {}
+
 // Testing Functions
 
 int js_add(int a, int b) { return a + b; }
@@ -111,6 +145,7 @@ int main(int argc, char* argv[]) {
   js_init_module_std(context, "std");
 
   codegen_test_init(context);
+  codegen_core_init(context);
   codegen_webgl_init(context);
   codegen_imguiBind_init(context);
 
@@ -120,12 +155,11 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  SDL_Window* window;
-  SDL_GLContext glContext;
+  Core core;
 
-  if ((window = SDL_CreateWindow("WebGL Runtime", SDL_WINDOWPOS_UNDEFINED,
-                                 SDL_WINDOWPOS_UNDEFINED, 800, 600,
-                                 SDL_WINDOW_OPENGL)) == nullptr) {
+  if ((core.window = SDL_CreateWindow(
+           "WebGL Runtime", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+           800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE)) == nullptr) {
     fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
 
     return 1;
@@ -139,8 +173,8 @@ int main(int argc, char* argv[]) {
 
   // Based on:
   // https://lazyfoo.net/tutorials/SDL/51_SDL_and_modern_opengl/index.php
-  glContext = SDL_GL_CreateContext(window);
-  if (glContext == nullptr) {
+  core.glContext = SDL_GL_CreateContext(core.window);
+  if (core.glContext == nullptr) {
     fprintf(stderr, "Failed to create OpenGL context: %s\n", SDL_GetError());
 
     return 1;
@@ -178,9 +212,19 @@ int main(int argc, char* argv[]) {
   ImGui::StyleColorsDark();
 
   // Setup Platform/Renderer bindings
-  ImGui_ImplSDL2_InitForOpenGL(window, glContext);
+  ImGui_ImplSDL2_InitForOpenGL(core.window, core.glContext);
   ImGui_ImplOpenGL3_Init();
 
+  // Setup Core API
+  JSValue core_wrapper = js_Core_new(context, &core);
+
+  JSValue global_object = JS_GetGlobalObject(context);
+
+  JS_SetPropertyStr(context, global_object, "core", core_wrapper);
+
+  JS_FreeValue(context, global_object);
+
+  // Load Initaliser Code
   JSValue val;
 
   size_t test_code_length = 0;
@@ -207,8 +251,10 @@ int main(int argc, char* argv[]) {
 
   JSValue imgui_wrapper = js_ImGuiContext_new(context, &imgui_context);
 
+  // Call Initaliser Function
   call_init_function(context, webgl_context);
 
+  // Main Loop
   bool show_demo_window = true;
 
   bool done = false;
@@ -220,12 +266,12 @@ int main(int argc, char* argv[]) {
       if (event.type == SDL_QUIT) done = true;
       if (event.type == SDL_WINDOWEVENT &&
           event.window.event == SDL_WINDOWEVENT_CLOSE &&
-          event.window.windowID == SDL_GetWindowID(window))
+          event.window.windowID == SDL_GetWindowID(core.window))
         done = true;
     }
 
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame(core.window);
     ImGui::NewFrame();
 
     if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
@@ -238,14 +284,14 @@ int main(int argc, char* argv[]) {
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    SDL_GL_SwapWindow(window);
+    SDL_GL_SwapWindow(core.window);
   }
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
 
-  SDL_DestroyWindow(window);
+  SDL_DestroyWindow(core.window);
   SDL_Quit();
 
   JS_FreeValue(context, webgl_context);

@@ -50,4 +50,11 @@ double js_ImGuiContext_inputSlider(ImGuiContext* _this, const char* label,
   return value;
 }
 
+bool js_ImGuiContext_checkbox(ImGuiContext* _this, const char* label,
+                              bool last) {
+  bool value = last;
+  ImGui::Checkbox(label, &value);
+  return value;
+}
+
 void js_ImGuiContext_finalizer(ImGuiContext* val) {}

@@ -116,6 +116,12 @@ def get_member_idl(thing):
             "arguments": id_arguments,
             "passContext": id_passContext
         }
+    elif thing.isAttr():
+        id_name = thing.identifier.name
+
+        id_inner_type = resolve_type(thing.type.prettyName())
+
+        return {"type": "property", "name": id_name, "propertyType": id_inner_type}
     else:
         print(thing)
         raise Exception("Interface Member not handled")

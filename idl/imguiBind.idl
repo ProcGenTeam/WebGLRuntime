@@ -7,4 +7,5 @@ interface ImGuiContext {
   DOMString inputText(DOMString label, DOMString last);
   float inputNumber(DOMString label, float last);
   float inputSlider(DOMString label, float min, float max, float last);
+  boolean checkbox(DOMString label, boolean last);
 };
