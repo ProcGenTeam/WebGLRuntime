@@ -1,2 +1,3 @@
 third_party/* linguist-vendored
 res/third_party/* linguist-vendored
+scripts/WebIDL.py linguist-vendored
