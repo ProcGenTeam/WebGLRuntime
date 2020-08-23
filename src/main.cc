@@ -26,6 +26,7 @@
 struct Core {
   SDL_Window* window;
   SDL_GLContext glContext;
+  JSValue application = JS_UNDEFINED;
 };
 
 Core* js_Core_ctor() { return nullptr; }
@@ -50,7 +51,30 @@ int32_t js_Core_viewportHeight_get(Core* _this) {
 
 void js_Core_viewportHeight_set(Core* _this, int32_t value) {}
 
+void js_Core_run(JSContext* ctx, Core* _this, JSValue app) {
+  if (!JS_IsFunction(ctx, app)) {
+    fprintf(stderr, "Application is not a Constructor\n");
+    return;
+  }
+
+  JSValue arguments[] = {};
+
+  JSValue application = JS_CallConstructor(ctx, app, 0, arguments);
+
+  fprintf(stderr, "User Code has created a Application\n");
+
+  _this->application = JS_DupValue(ctx, application);
+
+  JS_FreeValue(ctx, application);
+}
+
 void js_Core_finalizer(Core* val) {}
+
+struct Application {};
+
+Application* js_Application_ctor() { return new Application(); }
+
+void js_Application_finalizer(Application* val) { delete val; }
 
 // Testing Functions
 
@@ -82,37 +106,51 @@ void js_TestClass_hello(TestClass* _this) { _this->hello(); }
 
 // Other Functions
 
-void call_callback(JSContext* context, const char* name, JSValue argument) {
-  JSValue global = JS_GetGlobalObject(context);
+bool call_callback(JSContext* context, Core* core, const char* name,
+                   JSValue argument) {
+  if (JS_IsUndefined(core->application)) {
+    return false;
+  }
 
-  JSValue callback_func = JS_GetPropertyStr(context, global, name);
+  bool ret = true;
+
+  JSValue callback_func = JS_GetPropertyStr(context, core->application, name);
 
   JSValue value_array[] = {argument};
 
   if (!JS_IsUndefined(callback_func)) {
-    JSValue ret = JS_Call(context, callback_func, global, 1, value_array);
+    JSValue callback_value =
+        JS_Call(context, callback_func, core->application, 1, value_array);
 
-    if (JS_IsException(ret)) {
+    if (JS_IsException(callback_value)) {
       js_std_dump_error(context);
+
+      ret = false;
     }
 
-    JS_FreeValue(context, ret);
+    JS_FreeValue(context, callback_value);
+  } else {
+    ret = false;
   }
 
   JS_FreeValue(context, callback_func);
-  JS_FreeValue(context, global);
+
+  return ret;
 }
 
-void call_draw_function(JSContext* context, JSValue render_wrapper) {
-  call_callback(context, "draw", render_wrapper);
+bool call_draw_function(JSContext* context, Core* core,
+                        JSValue render_wrapper) {
+  return call_callback(context, core, "draw", render_wrapper);
 }
 
-void call_init_function(JSContext* context, JSValue render_wrapper) {
-  call_callback(context, "init", render_wrapper);
+bool call_init_function(JSContext* context, Core* core,
+                        JSValue render_wrapper) {
+  return call_callback(context, core, "init", render_wrapper);
 }
 
-void call_gui_function(JSContext* context, JSValue imgui_wrapper) {
-  call_callback(context, "drawGui", imgui_wrapper);
+bool call_update_function(JSContext* context, Core* core,
+                          JSValue imgui_wrapper) {
+  return call_callback(context, core, "update", imgui_wrapper);
 }
 
 // From: https://www.khronos.org/opengl/wiki/OpenGL_Error
@@ -137,8 +175,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  // Initalise JavaScript
+
   JSRuntime* runtime = JS_NewRuntime();
   JSContext* context = JS_NewContext(runtime);
+
+  // Loader for ES6 modules
+  JS_SetModuleLoaderFunc(runtime, NULL, js_module_loader, NULL);
 
   js_std_add_helpers(context, argc, argv);
   js_init_module_os(context, "os");
@@ -148,6 +191,8 @@ int main(int argc, char* argv[]) {
   codegen_core_init(context);
   codegen_webgl_init(context);
   codegen_imguiBind_init(context);
+
+  // Initialise SDL
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
@@ -227,10 +272,11 @@ int main(int argc, char* argv[]) {
   // Load Initaliser Code
   JSValue val;
 
-  size_t test_code_length = 0;
-  uint8_t* test_code = js_load_file(context, &test_code_length, argv[1]);
+  size_t main_code_length = 0;
+  uint8_t* main_code = js_load_file(context, &main_code_length, argv[1]);
 
-  val = JS_Eval(context, (char*)test_code, test_code_length, argv[1], 0);
+  val = JS_Eval(context, (char*)main_code, main_code_length, argv[1],
+                JS_EVAL_TYPE_MODULE);
 
   if (JS_IsException(val)) {
     fprintf(stderr, "Error: Error running inital script.\n");
@@ -242,6 +288,7 @@ int main(int argc, char* argv[]) {
 
   JS_FreeValue(context, val);
 
+  // Setup Graphics Wrappers
   WebGL2RenderingContext rendering_context;
 
   JSValue webgl_context =
@@ -252,7 +299,9 @@ int main(int argc, char* argv[]) {
   JSValue imgui_wrapper = js_ImGuiContext_new(context, &imgui_context);
 
   // Call Initaliser Function
-  call_init_function(context, webgl_context);
+  if (!call_init_function(context, &core, webgl_context)) {
+    fprintf(stderr, "Could not call initaliser function.\n");
+  }
 
   // Main Loop
   bool show_demo_window = true;
@@ -276,26 +325,32 @@ int main(int argc, char* argv[]) {
 
     if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
-    call_gui_function(context, imgui_wrapper);
+    call_update_function(context, &core, imgui_wrapper);
 
     ImGui::Render();
 
-    call_draw_function(context, webgl_context);
+    call_draw_function(context, &core, webgl_context);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(core.window);
   }
 
+  // Shutdown ImGui
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
 
+  // Shutdown SDL
   SDL_DestroyWindow(core.window);
   SDL_Quit();
 
+  // Shutdown Wrappers
+  JS_FreeValue(context, imgui_wrapper);
   JS_FreeValue(context, webgl_context);
+  JS_FreeValue(context, core.application);
 
+  // Shutdown JavaScript
   JS_FreeContext(context);
   JS_FreeRuntime(runtime);
 

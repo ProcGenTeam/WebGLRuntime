@@ -1,5 +1,3 @@
-console.log(core.viewportWidth, core.viewportHeight);
-
 const params = {
   text: "",
   float: 0.0,

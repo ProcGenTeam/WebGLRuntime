@@ -1,4 +1,10 @@
 interface Core {
   attribute long viewportWidth;
   attribute long viewportHeight;
+
+  void run(any app);
+};
+
+interface Application {
+
 };

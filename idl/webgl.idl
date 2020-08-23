@@ -491,7 +491,7 @@ interface WebGL2RenderingContext
     // [WebGLHandlesContextLoss] boolean isContextLost();
 
     // sequence<DOMString>? getSupportedExtensions();
-    // object? getExtension(DOMString name);
+    any getExtension(DOMString name);
 
     // void activeTexture(GLenum texture);
     void attachShader(WebGLProgram program, WebGLShader shader);
@@ -566,7 +566,7 @@ interface WebGL2RenderingContext
     [WebGLHandlesContextLoss] GLint getAttribLocation(WebGLProgram program, DOMString name);
 
     // any getBufferParameter(GLenum target, GLenum pname);
-    // any getParameter(GLenum pname);
+    any getParameter(GLenum pname);
 
     [WebGLHandlesContextLoss] GLenum getError();
 
@@ -607,7 +607,7 @@ interface WebGL2RenderingContext
     // void renderbufferStorage(GLenum target, GLenum internalformat,
     //                          GLsizei width, GLsizei height);
     // void sampleCoverage(GLclampf value, GLboolean invert);
-    // void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
+    void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
 
     void shaderSource(WebGLShader shader, DOMString source);
 

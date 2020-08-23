@@ -83,6 +83,16 @@ WebGL2RenderingContext* js_WebGL2RenderingContext_ctor() {
   return new WebGL2RenderingContext();
 }
 
+JSValue js_WebGL2RenderingContext_getExtension(JSContext* ctx,
+                                               WebGL2RenderingContext* _this,
+                                               const char* name) {
+  fprintf(stderr, "WEBGL Extension %s not supported\n", name);
+
+  JSValue ret = JS_NewObject(ctx);
+
+  return ret;
+}
+
 void js_WebGL2RenderingContext_attachShader(WebGL2RenderingContext* _this,
                                             WebGLProgram* program,
                                             WebGLShader* shader) {
@@ -279,6 +289,32 @@ int32_t js_WebGL2RenderingContext_getAttribLocation(
   return glGetAttribLocation(program->program, name);
 }
 
+JSValue js_WebGL2RenderingContext_getParameter(JSContext* ctx,
+                                               WebGL2RenderingContext* _this,
+                                               uint32_t pname) {
+  if (pname == GL_MAX_TEXTURE_IMAGE_UNITS ||
+      pname == GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS ||
+      pname == GL_MAX_TEXTURE_SIZE || pname == GL_MAX_CUBE_MAP_TEXTURE_SIZE ||
+      pname == GL_MAX_VERTEX_ATTRIBS ||
+      pname == GL_MAX_VERTEX_UNIFORM_VECTORS ||
+      pname == GL_MAX_VARYING_VECTORS ||
+      pname == GL_MAX_FRAGMENT_UNIFORM_VECTORS ||
+      pname == GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+    int value = 0;
+
+    glGetIntegerv(pname, &value);
+
+    return JS_NewInt32(ctx, value);
+  } else if (pname == 36183) {
+    // This is a WebGL2 thing.
+    return JS_NewInt32(ctx, 0);
+  } else if (pname == GL_VERSION) {
+    return JS_NewString(ctx, (const char*)glGetString(pname));
+  } else {
+    return JS_ThrowTypeError(ctx, "getParameter not implemented for %d", pname);
+  }
+}
+
 uint32_t js_WebGL2RenderingContext_getError(WebGL2RenderingContext* _this) {
   return glGetError();
 }
@@ -359,6 +395,12 @@ WebGLUniformLocation* js_WebGL2RenderingContext_getUniformLocation(
 int64_t js_WebGL2RenderingContext_getVertexAttribOffset(
     WebGL2RenderingContext* _this, uint32_t index, uint32_t pname) {
   return 0;
+}
+
+void js_WebGL2RenderingContext_scissor(WebGL2RenderingContext* _this, int32_t x,
+                                       int32_t y, int32_t width,
+                                       int32_t height) {
+  glScissor(x, y, width, height);
 }
 
 void js_WebGL2RenderingContext_shaderSource(WebGL2RenderingContext* _this,
