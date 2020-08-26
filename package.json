@@ -6,9 +6,10 @@
   "author": "Joshua Scarsbrook <jscarsbrook@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^13.11.1",
+    "@types/three": "^0.103.2",
     "gts": "^2.0.2",
-    "typescript": "^3.8.3",
-    "@types/node": "^13.11.1"
+    "typescript": "^3.8.3"
   },
   "scripts": {
     "start": "yarn compile && scripts/run.sh",
@@ -19,5 +20,8 @@
     "prepare": "yarn run compile",
     "pretest": "yarn run compile",
     "posttest": "yarn run check"
+  },
+  "dependencies": {
+    "three": "^0.119.1"
   }
 }

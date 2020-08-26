@@ -1,16 +1,16 @@
-import * as THREE from "./third_party/three.module.js";
+import * as THREE from 'three';
 
 console.error = function (...args) {
-  console.log("error", ...args);
+  console.log('error', ...args);
 };
 
 class ThreeTestApplication extends Application {
   scene = new THREE.Scene();
-  camera = undefined;
-  renderer = undefined;
-  cube = undefined;
+  camera?: THREE.PerspectiveCamera = undefined;
+  renderer?: THREE.WebGLRenderer = undefined;
+  cube?: THREE.Mesh = undefined;
 
-  init(gl) {
+  init(gl: WebGL2RenderingContext) {
     const fakeCanvas = {
       get width() {
         return core.viewportWidth;
@@ -34,11 +34,13 @@ class ThreeTestApplication extends Application {
       1000
     );
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: fakeCanvas });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: (fakeCanvas as unknown) as HTMLCanvasElement,
+    });
     this.renderer.setSize(fakeCanvas.width, fakeCanvas.height);
 
     var geometry = new THREE.BoxGeometry();
-    var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
 
     this.cube = new THREE.Mesh(geometry, material);
     this.scene.add(this.cube);
@@ -46,13 +48,21 @@ class ThreeTestApplication extends Application {
     this.camera.position.z = 5;
   }
 
-  draw(gl) {
+  draw(gl: WebGL2RenderingContext) {
+    if (
+      this.cube === undefined ||
+      this.renderer === undefined ||
+      this.camera === undefined
+    ) {
+      throw new Error('Not Implemented');
+    }
+
     this.cube.rotation.x += 0.01;
     this.cube.rotation.y += 0.01;
     this.renderer.render(this.scene, this.camera);
   }
 
-  update(gui) {}
+  update(gui: ImGUIContext) {}
 }
 
 core.run(ThreeTestApplication);

@@ -4,6 +4,7 @@
 #include <quickjs.h>
 #include <string.h>
 #include <third_party/imgui/imgui.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -167,6 +168,105 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           message);
 }
 
+// Module Loader
+
+bool file_exists(const char* filename) { return access(filename, F_OK) != -1; }
+
+const char* resolve_module_filename(JSContext* ctx, const char* filename) {
+  static char buf[2048];
+
+  // This implements basic NodeJS style module resolution.
+
+  // First case is the file directly exists.
+  if (file_exists(filename)) {
+    fprintf(stderr, "File exists: %s\n", filename);
+    return filename;
+  }
+
+  // Try appending .js
+  strncpy(buf, filename, sizeof(buf));
+
+  strncat(buf, ".js", sizeof(buf));
+
+  if (file_exists(buf)) {
+    fprintf(stderr, "File exists: %s\n", buf);
+    return buf;
+  }
+
+  // Try resolving the package.json file
+  snprintf(buf, sizeof(buf), "node_modules/%s/package.json", filename);
+
+  size_t package_json_length = 0;
+
+  uint8_t* package_json = js_load_file(ctx, &package_json_length, buf);
+
+  JSValue package_json_root = JS_ParseJSON2(ctx, (const char*)package_json,
+                                            package_json_length, buf, 0);
+
+  if (JS_IsException(package_json_root)) {
+    fprintf(stderr, "Failed loading JSON\n");
+
+    js_free(ctx, package_json);
+
+    return NULL;
+  }
+
+  JSValue module_filename_value =
+      JS_GetPropertyStr(ctx, package_json_root, "module");
+
+  const char* module_filename = JS_ToCString(ctx, module_filename_value);
+
+  snprintf(buf, sizeof(buf), "node_modules/%s/%s", filename, module_filename);
+
+  JS_FreeValue(ctx, module_filename_value);
+  JS_FreeValue(ctx, package_json_root);
+  js_free(ctx, package_json);
+
+  if (!file_exists(buf)) {
+    fprintf(stderr, "Could not find file: %s\n", buf);
+
+    JS_ThrowReferenceError(ctx, "Could not load module");
+    return NULL;
+  }
+
+  return buf;
+}
+
+JSModuleDef* js_module_loader_node(JSContext* ctx, const char* module_name,
+                                   void* opaque) {
+  JSModuleDef* m;
+
+  size_t buf_len;
+  uint8_t* buf;
+  JSValue func_val;
+
+  const char* filename = resolve_module_filename(ctx, module_name);
+
+  if (filename == NULL) {
+    return NULL;
+  }
+
+  buf = js_load_file(ctx, &buf_len, filename);
+  if (!buf) {
+    JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                           filename);
+    return NULL;
+  }
+
+  /* compile the module */
+  func_val = JS_Eval(ctx, (char*)buf, buf_len, module_name,
+                     JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+  js_free(ctx, buf);
+  if (JS_IsException(func_val)) return NULL;
+  /* XXX: could propagate the exception */
+  js_module_set_import_meta(ctx, func_val, true, false);
+  /* the module is already referenced, so we must free it */
+  m = (JSModuleDef*)JS_VALUE_GET_PTR(func_val);
+  JS_FreeValue(ctx, func_val);
+
+  return m;
+}
+
 // Entry Point
 
 int main(int argc, char* argv[]) {
@@ -181,7 +281,7 @@ int main(int argc, char* argv[]) {
   JSContext* context = JS_NewContext(runtime);
 
   // Loader for ES6 modules
-  JS_SetModuleLoaderFunc(runtime, NULL, js_module_loader, NULL);
+  JS_SetModuleLoaderFunc(runtime, NULL, js_module_loader_node, NULL);
 
   js_std_add_helpers(context, argc, argv);
   js_init_module_os(context, "os");

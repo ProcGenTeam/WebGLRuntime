@@ -12,6 +12,9 @@ interface ImGUIContext {
 
 declare class Core {
   run(app: ApplicationConstructor): void;
+
+  viewportWidth: number;
+  viewportHeight: number;
 }
 
 declare const core: Core;
