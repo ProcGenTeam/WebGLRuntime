@@ -9,7 +9,9 @@ core.run(
     }
 
     update(gui) {
-      gui.button("Hello, World");
+      if (gui.button("Hello, World")) {
+        console.log("Hello, World");
+      }
     }
   }
 );
