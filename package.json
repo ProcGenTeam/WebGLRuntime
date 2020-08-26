@@ -1,0 +1,23 @@
+{
+  "name": "webglruntime",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:ProcGenTeam/WebGLRuntime.git",
+  "author": "Joshua Scarsbrook <jscarsbrook@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "gts": "^2.0.2",
+    "typescript": "^3.8.3",
+    "@types/node": "^13.11.1"
+  },
+  "scripts": {
+    "start": "yarn compile && scripts/run.sh",
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "yarn run compile",
+    "pretest": "yarn run compile",
+    "posttest": "yarn run check"
+  }
+}
