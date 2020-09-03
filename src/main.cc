@@ -401,6 +401,9 @@ int main(int argc, char* argv[]) {
   // Call Initaliser Function
   if (!call_init_function(context, &core, webgl_context)) {
     fprintf(stderr, "Could not call initaliser function.\n");
+
+    // If we can't initilise then bail out.
+    return 1;
   }
 
   // Main Loop
@@ -417,6 +420,10 @@ int main(int argc, char* argv[]) {
           event.window.event == SDL_WINDOWEVENT_CLOSE &&
           event.window.windowID == SDL_GetWindowID(core.window))
         done = true;
+      if (event.type == SDL_WINDOWEVENT &&
+          event.window.event == SDL_WINDOWEVENT_RESIZED) {
+        glViewport(0, 0, event.window.data1, event.window.data2);
+      }
     }
 
     ImGui_ImplOpenGL3_NewFrame();

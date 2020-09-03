@@ -7,7 +7,13 @@ interface ApplicationConstructor {
 }
 
 interface ImGUIContext {
-  button(text: string): boolean;
+  beginWindow(title: string, callback: () => void): void;
+  button(label: string): boolean;
+  text(str: string): void;
+  inputText(label: string, last: string): string;
+  inputNumber(label: string, last: number): number;
+  inputSlider(label: string, min: number, max: number, last: number): number;
+  checkbox(label: string, last: boolean): boolean;
 }
 
 declare class Core {
