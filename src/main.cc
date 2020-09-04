@@ -1,5 +1,5 @@
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <glad/glad.h>
 #include <quickjs-libc.h>
 #include <quickjs.h>
 #include <string.h>
@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#define IMGUI_IMPL_OPENGL_LOADER_GLEW
+#define IMGUI_IMPL_OPENGL_LOADER_GLAD
 #include <examples/imgui_impl_opengl3.h>
 #include <examples/imgui_impl_sdl.h>
 
@@ -325,11 +325,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  glewExperimental = GL_TRUE;
-  GLenum glewError = glewInit();
-  if (glewError != GLEW_OK) {
-    fprintf(stderr, "Error initializing GLEW! %s\n",
-            glewGetErrorString(glewError));
+  if (gladLoadGL() != true) {
+    fprintf(stderr, "Error initializing GLAD!\n");
 
     return 1;
   }

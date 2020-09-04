@@ -25,6 +25,15 @@ qjs_lib = static_library('quickjs', qjs_srcs, c_args: [
 qjs_dep = declare_dependency(link_with: qjs_lib,
   include_directories: qjs_inc)
 
+
+glad_dep = declare_dependency(link_with: static_library(
+  'glad',
+  ['src/glad/src/glad.c'],
+  include_directories: include_directories('src/glad/include/')
+  ),
+  include_directories: include_directories('src/glad/include/')
+)
+
 imgui_dir = 'third_party/imgui'
 
 imgui_inc = include_directories(imgui_dir + '/')
@@ -38,7 +47,9 @@ imgui_srcs = [
   imgui_dir + '/examples/imgui_impl_sdl.cpp'
 ]
 
-imgui_lib = static_library('imgui', imgui_srcs, include_directories: imgui_inc)
+imgui_lib = static_library('imgui', imgui_srcs, include_directories: imgui_inc, c_args: [
+  '-DIMGUI_IMPL_OPENGL_LOADER_GLAD'
+], dependencies: [glad_dep])
 
 imgui_dep = declare_dependency(link_with: imgui_lib,
   include_directories: imgui_inc)
@@ -68,7 +79,6 @@ imgui_codegen = codegen_idl.process('idl/imguiBind.idl')
 dl_dep = meson.get_compiler('c').find_library('dl', required : false)
 thread_dep = dependency('threads')
 sdl2_dep = dependency('sdl2')
-glew_dep = dependency('glew')
 
 executable('webglruntime', [
   'src/main.cc',
@@ -80,4 +90,6 @@ executable('webglruntime', [
   webgl_codegen,
   'src/js_imgui.cc',
   imgui_codegen
-], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glew_dep, imgui_dep])
+], dependencies: [qjs_dep, dl_dep, thread_dep, sdl2_dep, glad_dep, imgui_dep], c_args: [
+  '-DIMGUI_IMPL_OPENGL_LOADER_GLAD'
+])

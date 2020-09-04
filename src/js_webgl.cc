@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <string.h>
 
 #include "codegen_utils.h"
